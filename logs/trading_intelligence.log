@@ -1,0 +1,22 @@
+2026-06-17 20:57:47,312 | WARNING  | memory | FAISS not found — using NumPy cosine similarity (slower)
+2026-06-17 20:58:07,539 | WARNING  | memory | FAISS not found — using NumPy cosine similarity (slower)
+2026-06-17 20:58:08,377 | WARNING  | models | TraderAI not trained yet — returning 50/50
+2026-06-17 20:58:08,378 | WARNING  | models | BLOCKED | ? | ['low_trader_confidence:0.00']
+2026-06-17 20:58:08,378 | INFO     | decision | PREDICT | ? | EA:BUY | Buy:50% Sell:50% | Risk:68% | → BLOCK | 0ms
+2026-06-17 21:01:57,946 | WARNING  | memory | FAISS not found — using NumPy cosine similarity (slower)
+2026-06-17 21:02:09,356 | INFO     | memory | Memory saved: 2000 records → data/trade_memory.pkl
+2026-06-17 21:02:10,333 | INFO     | models | Training trader_ai | 2000 samples | 64 features | 3 splits
+2026-06-17 21:02:12,058 | INFO     | models | TRAIN | trader_ai | random_forest | acc=54.80% auc=0.5480 | n=2000
+2026-06-17 21:02:12,092 | INFO     | models | TRAIN | trader_ai | logistic_regression | acc=52.17% auc=0.5217 | n=2000
+2026-06-17 21:02:12,092 | INFO     | models | trader_ai best model: random_forest (AUC=0.5480)
+2026-06-17 21:02:13,062 | INFO     | models | Saved trader_ai → models_saved/trader_ai.joblib
+2026-06-17 21:02:13,125 | INFO     | models | Training risk_manager | 2000 samples | 82 features | 3 splits
+2026-06-17 21:02:14,602 | INFO     | models | TRAIN | risk_manager | random_forest | acc=100.00% auc=1.0000 | n=2000
+2026-06-17 21:02:14,632 | INFO     | models | TRAIN | risk_manager | logistic_regression | acc=100.00% auc=1.0000 | n=2000
+2026-06-17 21:02:14,632 | INFO     | models | risk_manager best model: random_forest (AUC=1.0000)
+2026-06-17 21:02:15,408 | INFO     | models | Saved risk_manager → models_saved/risk_manager.joblib
+2026-06-17 21:02:15,552 | INFO     | memory | Memory loaded: 2000 records
+2026-06-17 21:02:15,569 | INFO     | models | TraderAI | BUY=52% SELL=48% → BUY (conf=2%)
+2026-06-17 21:02:15,583 | WARNING  | models | BLOCKED | ? | ['low_trader_confidence:0.02']
+2026-06-17 21:02:15,584 | INFO     | decision | PREDICT | ? | EA:BUY | Buy:52% Sell:48% | Risk:83% | → BLOCK | 31ms
+2026-06-17 21:03:26,810 | WARNING  | memory | FAISS not found — using NumPy cosine similarity (slower)
