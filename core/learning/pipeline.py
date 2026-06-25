@@ -98,6 +98,20 @@ class LearningPipeline:
         self._last_train_ts = datetime.utcnow()
         elapsed = time.perf_counter() - t0
 
+        # ── Build EA profiles from completed trades ───────────
+        if self.db:
+            try:
+                from core.profiles import EAProfileBuilder
+                model_logger.info("Building EA profiles from completed trades...")
+                builder  = EAProfileBuilder(min_samples=5)
+                profiles = builder.build_from_trades(trades)
+                for ea_id, profile in profiles.items():
+                    self.db.save_ea_profile(ea_id, profile.to_dict())
+                    model_logger.info("Profile saved: {} ({} trades)", ea_id, profile.total_trades)
+                model_logger.info("EA profiles updated: {} EAs", len(profiles))
+            except Exception as e:
+                model_logger.error("EA profile build failed (non-fatal): {}", e)
+
         summary = {
             "status":         "completed",
             "timestamp":      datetime.utcnow().isoformat(),

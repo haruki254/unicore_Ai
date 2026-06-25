@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 
 from config.settings        import settings
+from core.profiles          import EAProfile
+from core.scoring           import DirectionComparison, WeightedScorer
 from monitoring.logger      import decision_logger
 
 
@@ -51,13 +53,25 @@ class DecisionResult:
     similar_win_rate:   float = 0.5
     similar_avg_pnl:    float = 0.0
     similar_avg_dd:     float = 0.0
+    profile_buy_confidence:  Optional[float] = None
+    profile_sell_confidence: Optional[float] = None
+    profile_favoured_direction: Optional[str] = None
+    profile_confidence_gap: Optional[float] = None
 
     # ── Final ─────────────────────────────────────────────────
+    ea_id:              str   = "default"
     ea_signal:          str   = "BUY"
     final_decision:     str   = "BLOCK"
     is_flip:            bool  = False
     is_blocked:         bool  = False
     inference_ms:       int   = 0
+
+    # ── EA weighted scorer outputs ────────────────────────────
+    ea_buy_score:        Optional[float] = None
+    ea_sell_score:       Optional[float] = None
+    ea_buy_confidence:   Optional[float] = None
+    ea_sell_confidence:  Optional[float] = None
+    scoring_method:      str             = "ml_only"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -76,11 +90,21 @@ class DecisionResult:
             "similar_win_rate":   round(self.similar_win_rate,  4),
             "similar_avg_pnl":    round(self.similar_avg_pnl,   4),
             "similar_avg_dd":     round(self.similar_avg_dd,    4),
+            "profile_buy_confidence":  self.profile_buy_confidence,
+            "profile_sell_confidence": self.profile_sell_confidence,
+            "profile_favoured_direction": self.profile_favoured_direction,
+            "profile_confidence_gap": self.profile_confidence_gap,
+            "ea_id":              self.ea_id,
             "ea_signal":          self.ea_signal,
             "final_decision":     self.final_decision,
             "is_flip":            self.is_flip,
             "is_blocked":         self.is_blocked,
             "inference_ms":       self.inference_ms,
+            "ea_buy_score":       round(self.ea_buy_score,       4) if self.ea_buy_score       is not None else None,
+            "ea_sell_score":      round(self.ea_sell_score,      4) if self.ea_sell_score      is not None else None,
+            "ea_buy_confidence":  round(self.ea_buy_confidence,  4) if self.ea_buy_confidence  is not None else None,
+            "ea_sell_confidence": round(self.ea_sell_confidence, 4) if self.ea_sell_confidence is not None else None,
+            "scoring_method":     self.scoring_method,
         }
 
     @property
@@ -119,6 +143,9 @@ class DecisionEngine:
     FLIP_THRESHOLD     = settings.flip_threshold
     MIN_TRADER_CONF    = settings.min_trader_confidence
 
+    def __init__(self, weighted_scorer: WeightedScorer = None):
+        self.weighted_scorer = weighted_scorer or WeightedScorer()
+
     def decide(
         self,
         ea_signal:      str,
@@ -128,6 +155,8 @@ class DecisionEngine:
         regime_engine,
         memory_engine,
         risk_context:   Dict[str, Any] = None,
+        ea_id:          str = "default",
+        ea_profile:     Optional[EAProfile] = None,
     ) -> DecisionResult:
         """
         Run the full decision pipeline.
@@ -138,12 +167,15 @@ class DecisionEngine:
           ALLOW_BUY | ALLOW_SELL | FLIP_TO_BUY | FLIP_TO_SELL | BLOCK
         """
         t_start = time.perf_counter()
-        result  = DecisionResult(ea_signal=ea_signal)
+        result  = DecisionResult(ea_id=ea_id, ea_signal=ea_signal)
         ctx     = risk_context or {}
 
         # ── 1. Market Regime ─────────────────────────────────
         regime, regime_conf, regime_scores = regime_engine.classify(features)
         features["_regime"]      = regime
+        features["regime"]       = regime
+        if "_session_label" in features:
+            features["session"] = features["_session_label"]
         result.regime            = regime
         result.regime_confidence = regime_conf
 
@@ -185,6 +217,22 @@ class DecisionEngine:
         result.risk_block_reasons = reasons
         result.risk_model_used    = risk_manager.best_algorithm or "heuristic"
 
+        profile_cmp = self._score_profile(
+            features=features,
+            ea_profile=ea_profile,
+            ea_id=ea_id,
+            ea_signal=ea_signal,
+            result=result,
+        )
+
+        # ── Store EA scorer outputs on result ─────────────────
+        if profile_cmp is not None:
+            result.ea_buy_score       = profile_cmp.buy.score
+            result.ea_sell_score      = profile_cmp.sell.score
+            result.ea_buy_confidence  = profile_cmp.buy.confidence
+            result.ea_sell_confidence = profile_cmp.sell.confidence
+            result.scoring_method     = "ea_profile"
+
         # ── 5. Final Decision Logic ───────────────────────────
         final = self._resolve_decision(
             ea_signal   = ea_signal,
@@ -195,6 +243,8 @@ class DecisionEngine:
             risk_dec    = risk_dec,
             quality     = quality,
             regime      = regime,
+            profile_cmp = profile_cmp,
+            ea_profile  = ea_profile,
         )
 
         result.final_decision = final
@@ -214,6 +264,30 @@ class DecisionEngine:
 
         return result
 
+    def _score_profile(
+        self,
+        features: Dict[str, Any],
+        ea_profile: Optional[EAProfile],
+        ea_id: str,
+        ea_signal: str,
+        result: DecisionResult,
+    ) -> Optional[DirectionComparison]:
+        if ea_profile is None:
+            return None
+        try:
+            cmp = self.weighted_scorer.compare_directions(features, ea_profile)
+            result.profile_buy_confidence = cmp.buy.confidence
+            result.profile_sell_confidence = cmp.sell.confidence
+            result.profile_favoured_direction = cmp.favoured_direction
+            result.profile_confidence_gap = cmp.confidence_gap
+            decision_logger.info(
+                self.weighted_scorer.format_breakdown_log(cmp, ea_id, ea_signal)
+            )
+            return cmp
+        except Exception as e:
+            decision_logger.error("EA profile scoring failed for {}: {}", ea_id, e)
+            return None
+
     # ── Decision Resolution Logic ─────────────────────────────
 
     def _resolve_decision(
@@ -226,6 +300,8 @@ class DecisionEngine:
         risk_dec:    str,
         quality:     float,
         regime:      str,
+        profile_cmp: Optional[DirectionComparison] = None,
+        ea_profile:  Optional[EAProfile] = None,
     ) -> str:
         """
         Core resolution table:
@@ -245,6 +321,12 @@ class DecisionEngine:
         if regime in ("news_volatility",):
             return "BLOCK"
 
+        block_threshold = (
+            ea_profile.block_threshold if ea_profile else settings.min_risk_quality
+        )
+        if quality < block_threshold:
+            return "BLOCK"
+
         # Trader confidence too low
         if trader_conf < self.MIN_TRADER_CONF - 0.5:
             return "BLOCK"
@@ -257,17 +339,29 @@ class DecisionEngine:
                 return "ALLOW_SELL"
 
         # Direction DISAGREES with EA — possible FLIP
+        if profile_cmp is None:
+            return "BLOCK"
+
+        flip_high = (
+            ea_profile.flip_threshold if ea_profile else self.FLIP_THRESHOLD
+        )
+        flip_low = max(0.0, min(1.0, 1.0 - flip_high))
+
         if ea_signal == "BUY" and direction == "SELL":
-            if sell_prob >= self.FLIP_THRESHOLD and quality >= self.MIN_TRADER_CONF:
+            if (
+                profile_cmp.buy.confidence < flip_low and
+                profile_cmp.sell.confidence > flip_high
+            ):
                 return "FLIP_TO_SELL"
-            else:
-                return "BLOCK"   # not confident enough to flip
+            return "BLOCK"
 
         if ea_signal == "SELL" and direction == "BUY":
-            if buy_prob >= self.FLIP_THRESHOLD and quality >= self.MIN_TRADER_CONF:
+            if (
+                profile_cmp.sell.confidence < flip_low and
+                profile_cmp.buy.confidence > flip_high
+            ):
                 return "FLIP_TO_BUY"
-            else:
-                return "BLOCK"
+            return "BLOCK"
 
         return "BLOCK"
 
@@ -290,6 +384,12 @@ class DecisionEngine:
         ]
         if result.risk_block_reasons:
             lines.append(f"  Block Reasons : {', '.join(result.risk_block_reasons)}")
+        if result.profile_buy_confidence is not None:
+            lines.append(
+                f"  EA Profile    : BUY={result.profile_buy_confidence:.0%}  "
+                f"SELL={result.profile_sell_confidence:.0%}  "
+                f"favours {result.profile_favoured_direction}"
+            )
         lines.append(f"  FINAL         : ▶  {result.final_decision}")
         lines.append(f"  Latency       : {result.inference_ms}ms")
         lines.append("=" * 55)

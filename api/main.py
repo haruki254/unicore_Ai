@@ -35,6 +35,8 @@ from core.decision.decision_engine   import DecisionEngine
 from core.regime.regime_engine       import MarketRegimeEngine
 from core.memory.trade_memory        import TradeMemoryEngine
 from core.learning.pipeline          import LearningPipeline
+from core.learning.adaptive_updater  import AdaptiveUpdater
+from core.profiles                   import EAProfile
 from database.client                 import DatabaseClient
 from config.settings                 import settings
 from monitoring.logger               import api_logger
@@ -49,6 +51,7 @@ decision_engine  = DecisionEngine()
 regime_engine    = MarketRegimeEngine()
 memory_engine    = TradeMemoryEngine()
 db               = DatabaseClient()
+adaptive_updater = AdaptiveUpdater()
 learning_pipeline = LearningPipeline(
     trader_ai       = trader_ai,
     risk_manager    = risk_manager,
@@ -113,6 +116,13 @@ async def verify_api_key(x_api_key: str = Header(default="")):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
+def _load_ea_profile(ea_id: str) -> tuple[EAProfile, bool]:
+    profile_data = db.get_ea_profile(ea_id)
+    if profile_data:
+        return EAProfile.from_dict(profile_data), True
+    return EAProfile(ea_id=ea_id), False
+
+
 # ══════════════════════════════════════════════════════════════
 # MAIN PREDICTION ENDPOINT
 # ══════════════════════════════════════════════════════════════
@@ -145,10 +155,13 @@ async def predict(
     # ── Build snapshot dict ───────────────────────────────────
     snapshot = req.to_snapshot_dict()
     snapshot["symbol"] = req.symbol
+    snapshot["ea_id"] = req.ea_id
 
     # ── Compute features ──────────────────────────────────────
     try:
         features = feature_pipeline.compute(snapshot)
+        features["symbol"] = req.symbol
+        features["ea_id"] = req.ea_id
     except Exception as e:
         api_logger.error("Feature computation error: {}", e)
         raise HTTPException(status_code=500, detail=f"Feature error: {e}")
@@ -156,6 +169,7 @@ async def predict(
     # ── Build risk context ────────────────────────────────────
     risk_ctx = req.risk_context.dict()
     risk_ctx["session_quality"] = features.get("session_quality", 0.5)
+    ea_profile, _ = _load_ea_profile(req.ea_id)
 
     # ── Run decision pipeline ─────────────────────────────────
     try:
@@ -167,6 +181,8 @@ async def predict(
             regime_engine  = regime_engine,
             memory_engine  = memory_engine,
             risk_context   = risk_ctx,
+            ea_id          = req.ea_id,
+            ea_profile     = ea_profile,
         )
     except Exception as e:
         api_logger.error("Decision pipeline error: {}", e)
@@ -179,7 +195,7 @@ async def predict(
     async def _persist():
         nonlocal prediction_id
         try:
-            sid = db.save_snapshot({**snapshot, "features": features})
+            sid = db.save_snapshot({**snapshot, "id": snapshot_id, "features": features})
             pid = db.save_prediction(sid or snapshot_id, result.to_dict())
             if pid:
                 prediction_id = pid
@@ -264,6 +280,37 @@ async def update_trade(
                 duration_min= 0,
             )
 
+            # ── Adaptive update ───────────────────────────────
+            try:
+                profile_data = db.get_ea_profile(req.ea_id)
+                flip_stats   = db.get_flip_stats(req.ea_id) or {}
+                snapshot_features = {}
+
+                if req.snapshot_id:
+                    snap = db.get_snapshot_features(req.snapshot_id)
+                    if snap:
+                        snapshot_features = snap
+                        snapshot_features["direction"] = req.outcome
+                        snapshot_features["regime"]    = snap.get("regime") or req.regime
+                        snapshot_features["session"]   = snap.get("session") or req.session
+
+                if profile_data:
+                    ea_profile    = EAProfile.from_dict(profile_data)
+                    update_result = adaptive_updater.update(
+                        ea_id             = req.ea_id,
+                        outcome           = req.outcome,
+                        snapshot_features = snapshot_features,
+                        profile           = ea_profile,
+                        flip_stats        = flip_stats,
+                        was_flipped       = req.was_flipped,
+                    )
+                    db.save_ea_profile(req.ea_id, update_result.updated_profile.to_dict())
+                    db.update_flip_stats(req.ea_id, update_result.updated_flip_stats)
+                    api_logger.info("Adaptive update: {}", update_result.summary())
+            except Exception as e:
+                api_logger.error("Adaptive update failed for {}: {}", req.ea_id, e)
+            # ── End adaptive update ───────────────────────────
+
             # Add to memory engine
             memory_engine.add(
                 record_id    = str(req.mt5_ticket),
@@ -323,6 +370,67 @@ async def trigger_training(
         trader_ai       = {"status": "queued"},
         risk_manager    = {"status": "queued"},
     )
+
+
+# ══════════════════════════════════════════════════════════════
+# EA PROFILE ENDPOINTS
+# ══════════════════════════════════════════════════════════════
+
+@app.get(
+    "/ea-profile/{ea_id}",
+    tags    = ["EA Profiles"],
+    summary = "Return the current EA profile for inspection",
+)
+async def get_ea_profile_endpoint(
+    ea_id: str,
+    _: None = Depends(verify_api_key),
+):
+    """Return the current EA profile for inspection."""
+    data = db.get_ea_profile(ea_id)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No profile found for {ea_id}")
+    return data
+
+
+@app.get(
+    "/ea-profiles",
+    tags    = ["EA Profiles"],
+    summary = "List all EA profile summaries",
+)
+async def list_ea_profiles(
+    _: None = Depends(verify_api_key),
+):
+    """List all EA profile summaries."""
+    try:
+        resp = db.client.table("ea_profiles").select(
+            "ea_id, total_trades, wins, losses, win_rate, "
+            "flip_threshold, block_threshold, updated_at"
+        ).execute()
+        return resp.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post(
+    "/ea-profile/{ea_id}/rebuild",
+    tags    = ["EA Profiles"],
+    summary = "Force a profile rebuild from trade history for this EA",
+)
+async def rebuild_ea_profile(
+    ea_id: str,
+    _: None = Depends(verify_api_key),
+):
+    """Force a profile rebuild from trade history for this EA."""
+    from core.profiles import EAProfileBuilder
+    trades = db.fetch_completed_trades_for_ea(ea_id)
+    if not trades:
+        raise HTTPException(status_code=404, detail=f"No trades found for {ea_id}")
+    builder  = EAProfileBuilder()
+    profiles = builder.build_from_trades(trades)
+    if ea_id not in profiles:
+        raise HTTPException(status_code=422, detail="Could not build profile")
+    db.save_ea_profile(ea_id, profiles[ea_id].to_dict())
+    return {"status": "rebuilt", "ea_id": ea_id, "trades_used": len(trades)}
 
 
 # ══════════════════════════════════════════════════════════════

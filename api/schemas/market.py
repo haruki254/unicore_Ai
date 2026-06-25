@@ -36,6 +36,7 @@ class RiskContext(BaseModel):
 # ── Prediction Request (from MT5 EA) ─────────────────────────
 
 class PredictionRequest(BaseModel):
+    ea_id:      str              = Field(default="default", min_length=1, max_length=64)
     symbol:     str              = Field(..., min_length=1, max_length=20)
     ea_signal:  str              = Field(..., pattern="^(BUY|SELL)$")
     timestamp:  Optional[datetime] = None
@@ -60,6 +61,7 @@ class PredictionRequest(BaseModel):
 
     def to_snapshot_dict(self) -> Dict[str, Any]:
         return {
+            "ea_id":       self.ea_id,
             "symbol":      self.symbol,
             "timestamp":   self.timestamp,
             "price":       self.price,
@@ -135,6 +137,7 @@ class PredictionResponse(BaseModel):
 # ── Trade Update (from MT5 on trade close) ───────────────────
 
 class TradeUpdateRequest(BaseModel):
+    ea_id:        str = Field(default="default", min_length=1, max_length=64)
     mt5_ticket:   int
     symbol:       str
     direction:    str = Field(..., pattern="^(BUY|SELL)$")
@@ -149,7 +152,7 @@ class TradeUpdateRequest(BaseModel):
     original_signal: Optional[str] = None
     lot_size:     float = 0.01
     prediction_id: Optional[str] = None
-    snapshot_id:   Optional[str] = None
+    snapshot_id:   Optional[str] = None   # for feature lookup in adaptive update
     regime:       Optional[str] = None
     session:      Optional[str] = None
 

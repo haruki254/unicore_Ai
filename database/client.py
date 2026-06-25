@@ -82,6 +82,7 @@ class DatabaseClient:
         sid = s.get("id") or str(uuid.uuid4())
         self._ins("market_snapshots", {
             "id":           sid,
+            "ea_id":        s.get("ea_id", "default"),
             "captured_at":  _ts(s.get("timestamp")),
             "symbol":       s.get("symbol", "?"),
             "timeframe":    s.get("timeframe", "M5"),
@@ -104,6 +105,7 @@ class DatabaseClient:
         self._ins("predictions", {
             "id":                    pid,
             "snapshot_id":           snapshot_id,
+            "ea_id":                 r.get("ea_id", "default"),
             "ea_signal":             r.get("ea_signal"),
             "trader_buy_prob":       r.get("trader_buy_prob"),
             "trader_sell_prob":      r.get("trader_sell_prob"),
@@ -129,6 +131,7 @@ class DatabaseClient:
         tid = t.get("id") or str(uuid.uuid4())
         self._ins("trades", {
             "id":              tid,
+            "ea_id":           t.get("ea_id", "default"),
             "prediction_id":   t.get("prediction_id"),
             "snapshot_id":     t.get("snapshot_id"),
             "mt5_ticket":      t.get("mt5_ticket"),
@@ -158,9 +161,14 @@ class DatabaseClient:
         generate_sample_data.py will pick this up on next run.
         """
         return self._ins("trade_history", {
+            "ea_id":             trade.get("ea_id", "default"),
             "mt5_ticket":        trade.get("mt5_ticket"),
+            "prediction_id":     trade.get("prediction_id"),
+            "snapshot_id":       trade.get("snapshot_id"),
             "symbol":            trade.get("symbol",    "XAUUSD"),
             "direction":         trade.get("direction", "BUY"),
+            "was_flipped":       trade.get("was_flipped", False),
+            "original_signal":   trade.get("original_signal"),
             "entry_price":       trade.get("entry_price",  0),
             "exit_price":        trade.get("exit_price",   0),
             "pnl_pips":          trade.get("pnl_pips",     0),
@@ -178,7 +186,10 @@ class DatabaseClient:
                              pnl_usd=0.0, exit_price=0.0,
                              closed_at=None, direction="BUY",
                              entry_price=0.0, lot_size=0.01,
-                             session=None):
+                             session=None, ea_id="default",
+                             prediction_id=None, snapshot_id=None,
+                             was_flipped=False, original_signal=None,
+                             regime=None, max_drawdown_pips=0.0):
         """
         Update outcome on the trades table AND insert into trade_history
         so generate_sample_data.py picks it up for the next retrain.
@@ -187,6 +198,7 @@ class DatabaseClient:
             return True
         try:
             self._tbl("trades").update({
+                "ea_id":      ea_id,
                 "outcome":    outcome,
                 "pnl_pips":   pnl_pips,
                 "pnl_usd":    pnl_usd,
@@ -199,7 +211,12 @@ class DatabaseClient:
         # Always write to trade_history — this is what generate_sample_data.py reads
         self.save_trade_to_history({
             "mt5_ticket":   mt5_ticket,
+            "ea_id":        ea_id,
+            "prediction_id": prediction_id,
+            "snapshot_id":  snapshot_id,
             "direction":    direction,
+            "was_flipped":  was_flipped,
+            "original_signal": original_signal,
             "entry_price":  entry_price,
             "exit_price":   exit_price,
             "pnl_pips":     pnl_pips,
@@ -207,6 +224,8 @@ class DatabaseClient:
             "outcome":      outcome,
             "lot_size":     lot_size,
             "session":      session,
+            "regime":       regime,
+            "max_drawdown_pips": max_drawdown_pips,
             "closed_at":    closed_at or datetime.utcnow(),
         })
         return True
@@ -221,6 +240,120 @@ class DatabaseClient:
         except Exception:
             pass
         return self._ins("model_results", r)
+
+    # =========================================================
+    # EA PROFILES / ADAPTIVE STATS
+    # =========================================================
+
+    def get_ea_profile(self, ea_id: str) -> Optional[Dict[str, Any]]:
+        if not self._connected:
+            return None
+        try:
+            rows = (
+                self._tbl("ea_profiles")
+                .select("*")
+                .eq("ea_id", ea_id)
+                .limit(1)
+                .execute()
+                .data or []
+            )
+            if not rows:
+                return None
+            profile = dict(rows[0])
+            for key in (
+                "regime_weights",
+                "session_weights",
+                "volatility_weights",
+                "momentum_weights",
+                "level_prox_weights",
+                "sample_counts",
+            ):
+                profile[key] = _json_or(profile.get(key), {})
+            return profile
+        except Exception as e:
+            db_logger.error("get_ea_profile({}): {}", ea_id, e)
+            return None
+
+    def save_ea_profile(self, ea_id: str, profile: Dict[str, Any]) -> bool:
+        if not self._connected:
+            return True
+        try:
+            payload = dict(profile)
+            payload["ea_id"] = ea_id
+            payload["updated_at"] = datetime.utcnow().isoformat()
+            self._tbl("ea_profiles").upsert(payload).execute()
+            return True
+        except Exception as e:
+            db_logger.error("save_ea_profile({}): {}", ea_id, e)
+            return False
+
+    def update_ea_profile(self, ea_id: str, profile: Dict[str, Any]) -> bool:
+        return self.save_ea_profile(ea_id, profile)
+
+    def get_flip_stats(self, ea_id: str) -> Dict[str, Any]:
+        if not self._connected:
+            return {}
+        try:
+            rows = (
+                self._tbl("ea_flip_stats")
+                .select("*")
+                .eq("ea_id", ea_id)
+                .limit(1)
+                .execute()
+                .data or []
+            )
+            if not rows:
+                return {}
+            stats = dict(rows[0])
+            stats["recent_flip_outcomes"] = _json_or(
+                stats.get("recent_flip_outcomes"), []
+            )
+            return stats
+        except Exception as e:
+            db_logger.error("get_flip_stats({}): {}", ea_id, e)
+            return {}
+
+    def update_flip_stats(self, ea_id: str, stats: Dict[str, Any]) -> bool:
+        if not self._connected:
+            return True
+        try:
+            payload = dict(stats)
+            payload["ea_id"] = ea_id
+            payload["updated_at"] = datetime.utcnow().isoformat()
+            self._tbl("ea_flip_stats").upsert(payload).execute()
+            return True
+        except Exception as e:
+            db_logger.error("update_flip_stats({}): {}", ea_id, e)
+            return False
+
+    def get_snapshot_features(self, snapshot_id: str) -> Dict[str, Any]:
+        if not self._connected or not snapshot_id:
+            return {}
+        try:
+            rows = (
+                self._tbl("market_snapshots")
+                .select("features,symbol,close_price,spread_pips,captured_at")
+                .eq("id", snapshot_id)
+                .limit(1)
+                .execute()
+                .data or []
+            )
+            if not rows:
+                return {}
+            row = rows[0]
+            features = _json_or(row.get("features"), {})
+            if row.get("symbol") is not None:
+                features.setdefault("symbol", row.get("symbol"))
+            if row.get("close_price") is not None:
+                features.setdefault("price", row.get("close_price"))
+            if row.get("spread_pips") is not None:
+                features.setdefault("spread_pips", row.get("spread_pips"))
+            if row.get("captured_at") is not None:
+                features.setdefault("timestamp", row.get("captured_at"))
+            return features
+        except Exception as e:
+            db_logger.error("get_snapshot_features({}): {}", snapshot_id, e)
+            return {}
 
     # =========================================================
     # TRAINING DATA
@@ -252,6 +385,55 @@ class DatabaseClient:
         except Exception as e:
             db_logger.error("fetch_completed_trades via generate() failed: {}", e)
             return self._load_pkl_fallback()
+
+    def fetch_completed_trades_with_ea_id(
+        self,
+        limit: int = 10_000,
+        min_date=None,
+    ) -> List[Dict]:
+        if not self._connected:
+            trades = self._load_pkl_fallback()
+        else:
+            try:
+                q = (
+                    self._tbl("trade_history")
+                    .select("*")
+                    .neq("outcome", "PENDING")
+                    .order("closed_at", desc=True)
+                    .limit(limit)
+                )
+                if min_date:
+                    q = q.gte("closed_at", _ts(min_date))
+                trades = q.execute().data or []
+            except Exception as e:
+                db_logger.error("fetch_completed_trades_with_ea_id: {}", e)
+                trades = self._load_pkl_fallback()
+
+        for trade in trades:
+            trade["ea_id"] = str(trade.get("ea_id") or "default")
+        return trades
+
+    def fetch_completed_trades_for_ea(
+        self, ea_id: str, limit: int = 5_000
+    ) -> List[Dict]:
+        """Return closed trades for a single EA — used by profile rebuild."""
+        if not self._connected:
+            return [t for t in self._load_pkl_fallback() if str(t.get("ea_id", "default")) == ea_id]
+        try:
+            rows = (
+                self._tbl("trade_history")
+                .select("*")
+                .eq("ea_id", ea_id)
+                .neq("outcome", "PENDING")
+                .order("closed_at", desc=True)
+                .limit(limit)
+                .execute()
+                .data or []
+            )
+            return rows
+        except Exception as e:
+            db_logger.error("fetch_completed_trades_for_ea({}): {}", ea_id, e)
+            return []
 
     def _load_pkl_fallback(self) -> List[Dict]:
         """
@@ -350,3 +532,14 @@ def _ts(v) -> Optional[str]:
     if isinstance(v, datetime):
         return v.isoformat()
     return str(v)
+
+
+def _json_or(v, default):
+    if v is None:
+        return default
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except Exception:
+            return default
+    return v
