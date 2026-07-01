@@ -1,6 +1,26 @@
 //+------------------------------------------------------------------+
 //|                                                    Unicore.mq5   |
 //|         Unicore — XAUUSD | Multi-Strategy Executor               |
+//|         v5.20: manual override for AI BLOCK decisions             |
+//|           TI_OverrideBlock (input) — when true, a BLOCK verdict   |
+//|           no longer stops the trade; it still logs/reports to     |
+//|           the AI backend (ai_block_overridden=true) so blocked    |
+//|           trades produce real outcomes to train/calibrate on.     |
+//|           TI_OverrideDemoOnly (input, default true) — override    |
+//|           only takes effect on demo accounts, ignored on live.    |
+//|           Comment tag "_OV" + dashboard "Overrides: N" counter    |
+//|           make overridden trades visible on-chart and in Journal. |
+//|                                                                   |
+//|         v5.19: dashboard now shows predict/patch/report status    |
+//|           g_ti_predictStatus/Time — TI_CheckSignal() outcome      |
+//|           g_ti_patchStatus/Time   — UpdateSignalStatus() outcome  |
+//|           g_ti_reportStatus/Time  — TI_ReportTrade() outcome      |
+//|           Each shows OK, FAIL http=<code> (err=<mql5 err>), or    |
+//|           SKIPPED (AI disabled) — so a disabled/broken stage is   |
+//|           visible on-chart instead of only in the Journal.        |
+//|           UpdateSignalStatus() also now checks the PATCH result   |
+//|           (previously fired-and-forgot it).                       |
+//|                                                                   |
 //|         v5.18: nuclear trade_history null-column fix                          |
 //|                                                                   |
 //|         v5.17 changes vs v5.16:                                   |
@@ -32,7 +52,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Unicore"
 #property link      "https://unicoregoldbot.tiiny.site"
-#property version   "5.18"
+#property version   "5.20"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -99,6 +119,14 @@ input bool    TI_Enabled         = true;
 input string  TI_API_URL         = "http://127.0.0.1:8000";
 input bool    TI_AllowFlip       = false;
 input int     TI_Timeout_ms      = 5000;
+
+// v5.20 — manual override for AI BLOCK decisions. Meant for training/
+// calibrating the model on a demo account: trades execute regardless of
+// a BLOCK verdict, but the verdict + real outcome still get reported to
+// the AI backend (ai_block_overridden=true) so it has something to learn
+// from instead of only ever seeing outcomes it already approved of.
+input bool    TI_OverrideBlock       = false;  // Execute anyway when AI says BLOCK (training mode)
+input bool    TI_OverrideDemoOnly    = true;   // Only let the override take effect on a DEMO account
 
 // Hardcoded — must match API_KEY in your Python .env file.
 const string  TI_API_KEY         = "@Youtube2017";
@@ -172,6 +200,15 @@ double   g_ti_sell_prob      = 0.0;
 int      g_ti_blocks         = 0;
 int      g_ti_allows         = 0;
 string   g_ti_status         = "Waiting...";
+int      g_ti_overrides      = 0;   // v5.20: BLOCK verdicts overridden and executed anyway
+
+// v5.19: per-stage pipeline visibility (predict / patch / report)
+string   g_ti_predictStatus  = "—";
+datetime g_ti_predictTime    = 0;
+string   g_ti_patchStatus    = "—";
+datetime g_ti_patchTime      = 0;
+string   g_ti_reportStatus   = "—";
+datetime g_ti_reportTime     = 0;
 
 // ============================================================
 // v5.16 — TI RESULT STRUCT
@@ -314,6 +351,15 @@ void MarkProcessed(string id)
       g_processedCount = MAX_PROCESSED-1;
    }
    g_processedIDs[g_processedCount++] = id;
+}
+
+// ============================================================
+// ACCOUNT HELPER  (v5.20)
+// Used to gate TI_OverrideBlock to demo accounts only.
+// ============================================================
+bool IsDemoAccount()
+{
+   return (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_DEMO);
 }
 
 // ============================================================
@@ -709,7 +755,12 @@ TIResult TI_CheckSignal(string action, string strategy)
    res.buyProb      = 0.0;
    res.sellProb     = 0.0;
 
-   if(!TI_Enabled) return res;
+   if(!TI_Enabled)
+   {
+      g_ti_predictStatus = "SKIPPED (AI disabled)";
+      g_ti_predictTime   = TimeCurrent();
+      return res;
+   }
 
    double balance    = AccountInfoDouble(ACCOUNT_BALANCE);
    double equity     = AccountInfoDouble(ACCOUNT_EQUITY);
@@ -764,7 +815,9 @@ TIResult TI_CheckSignal(string action, string strategy)
    if(httpCode < 0 || httpCode != 200)
    {
       Print("[TI] API unreachable (http=", httpCode, ") — fail-open, trade allowed");
-      g_ti_status = "⚠️ API offline — trades allowed";
+      g_ti_status         = "⚠️ API offline — trades allowed";
+      g_ti_predictStatus  = StringFormat("FAIL http=%d (err=%d)", httpCode, GetLastError());
+      g_ti_predictTime    = TimeCurrent();
       return res;   // decision stays "ALLOW"
    }
 
@@ -797,6 +850,9 @@ TIResult TI_CheckSignal(string action, string strategy)
       res.buyProb  * 100,
       res.sellProb * 100);
 
+   g_ti_predictStatus = "OK";
+   g_ti_predictTime   = TimeCurrent();
+
    Print(StringFormat(
       "[TI] [%s] %s → %s | Regime: %s | Quality: %.1f%% | Buy: %.1f%% Sell: %.1f%%"
       " | snap=%s | pred=%s",
@@ -815,7 +871,12 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
                     string regime, string session, double lotSize,
                     double maxDrawdownPips, datetime openedAt, long magicNumber)
 {
-   if(!TI_Enabled) return;
+   if(!TI_Enabled)
+   {
+      g_ti_reportStatus = "SKIPPED (AI disabled)";
+      g_ti_reportTime   = TimeCurrent();
+      return;
+   }
 
    string json = StringFormat(
       "{\"ea_id\":\"%s\","
@@ -855,9 +916,15 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
    StringToCharArray(json, post, 0, StringLen(json));
 
    int res = WebRequest("POST", url, headers, TI_Timeout_ms, post, result, resHeaders);
+   g_ti_reportTime = TimeCurrent();
    if(res < 0 || res != 200)
+   {
+      g_ti_reportStatus = StringFormat("FAIL http=%d (err=%d)", res, GetLastError());
       Print("[TI] ⚠️ Failed to report trade #", dealTicket, " (http=", res, ")");
+   }
    else
+   {
+      g_ti_reportStatus = "OK #" + IntegerToString((int)dealTicket);
       Print("[TI] ✅ Reported: [", strategy, "] #", dealTicket,
             " | ", outcome,
             " | ", DoubleToString(pnlPips, 1), " pips",
@@ -870,6 +937,7 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
             " | opened=", openedAt > 0
                            ? TimeToString(openedAt, TIME_DATE|TIME_SECONDS)
                            : "unknown");
+   }
 }
 
 // ============================================================
@@ -884,9 +952,10 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
    bool   wasFlipped = false;
 
    // ── Trading Intelligence AI check ──────────────────────────────────────
-   string snapshotId   = "";
-   string predictionId = "";
-   string tiRegime     = "";
+   string snapshotId    = "";
+   string predictionId  = "";
+   string tiRegime      = "";
+   bool   aiWantedBlock = false;   // v5.20: true if AI said BLOCK but override let it through
 
    if(TI_Enabled)
    {
@@ -899,12 +968,24 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
 
       if(tiRes.decision == "BLOCK")
       {
-         g_lastError = "TI AI: BLOCKED (" + tiRes.regime + " | Q:" +
-                       DoubleToString(tiRes.quality * 100, 0) + "%)";
-         Print("🚫 [TI] Trade BLOCKED | Regime: ", tiRes.regime,
+         bool overrideActive = TI_OverrideBlock && (!TI_OverrideDemoOnly || IsDemoAccount());
+
+         if(!overrideActive)
+         {
+            g_lastError = "TI AI: BLOCKED (" + tiRes.regime + " | Q:" +
+                          DoubleToString(tiRes.quality * 100, 0) + "%)";
+            Print("🚫 [TI] Trade BLOCKED | Regime: ", tiRes.regime,
+                  " | Quality: ", DoubleToString(tiRes.quality * 100, 1), "%",
+                  " | Strategy: ", strategy);
+            return false;
+         }
+
+         // v5.20: override active — verdict is logged/reported, not enforced
+         aiWantedBlock = true;
+         g_ti_overrides++;
+         Print("⚠️ [TI] BLOCK OVERRIDDEN — trading anyway (training mode) | Regime: ", tiRes.regime,
                " | Quality: ", DoubleToString(tiRes.quality * 100, 1), "%",
                " | Strategy: ", strategy);
-         return false;
       }
 
       if(TI_AllowFlip)
@@ -928,9 +1009,10 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
    ulong  tradeMagic  = GetMagicForStrategy(strategy);
    string encodedCode = EncodeStrategy(strategy);
 
-   // _FL suffix lets OnTradeTransaction detect flips at close time
-   string flipTag = wasFlipped ? "_FL" : "";
-   string comment = "TF_" + encodedCode + "_" + StringSubstr(signalID, 0, 8) + flipTag;
+   // _FL / _OV suffixes let OnTradeTransaction decode flip/override status at close time
+   string flipTag     = wasFlipped    ? "_FL" : "";
+   string overrideTag = aiWantedBlock ? "_OV" : "";
+   string comment = "TF_" + encodedCode + "_" + StringSubstr(signalID, 0, 8) + flipTag + overrideTag;
 
    double executePrice = NormalizeDouble(
       (action=="BUY") ? SymbolInfoDouble(_Symbol,SYMBOL_ASK) : SymbolInfoDouble(_Symbol,SYMBOL_BID),
@@ -956,6 +1038,7 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
          " | Magic: ",IntegerToString((int)tradeMagic),
          " | TI: ",g_ti_decision," Q:",DoubleToString(g_ti_quality*100,0),"%",
          " | Flipped: ", wasFlipped ? "YES" : "NO",
+         " | Override: ", aiWantedBlock ? "YES" : "NO",
          " | PY health: ",DoubleToString(g_py_health,1),
          " | ",gateLabel,
          " | Comment: ",comment);
@@ -1083,7 +1166,12 @@ void OnTradeTransaction(
    const MqlTradeResult      &result
 )
 {
-   if(!TI_Enabled) return;
+   if(!TI_Enabled)
+   {
+      g_ti_patchStatus = "SKIPPED (AI disabled)";
+      g_ti_patchTime   = TimeCurrent();
+      return;
+   }
    if(trans.type != TRADE_TRANSACTION_DEAL_ADD) return;
 
    ulong dealTicket = trans.deal;
@@ -1431,7 +1519,17 @@ void UpdateSignalStatus(string signalID, string newStatus)
    string body = "{\"status\":\""+newStatus+"\"}";
    char data[], result[]; string resHeaders;
    StringToCharArray(body, data, 0, StringLen(body));
-   WebRequest("PATCH",url,headers,"",5000,data,StringLen(body),result,resHeaders);
+   int res = WebRequest("PATCH",url,headers,"",5000,data,StringLen(body),result,resHeaders);
+
+   g_ti_patchTime = TimeCurrent();
+   // Supabase PATCH with Prefer: return=minimal replies 204 on success, not 200
+   if(res < 0 || (res != 200 && res != 204))
+   {
+      g_ti_patchStatus = StringFormat("FAIL http=%d (err=%d)", res, GetLastError());
+      Print("[TI] ⚠️ Failed to patch signal ", signalID, " → ", newStatus, " (http=", res, ")");
+   }
+   else
+      g_ti_patchStatus = "OK → " + newStatus;
 }
 
 void ResetDailyCounter()
@@ -1572,6 +1670,11 @@ void UpdateChartDisplay()
          "║ AI Filter: %s | Blocks: %d | Allows: %d",
          g_ti_status, g_ti_blocks, g_ti_allows);
 
+   // v5.19: per-stage pipeline status strings (never-fired shows "never")
+   string predictTimeStr = (g_ti_predictTime==0) ? "never" : TimeToString(g_ti_predictTime,TIME_SECONDS);
+   string patchTimeStr   = (g_ti_patchTime==0)   ? "never" : TimeToString(g_ti_patchTime,TIME_SECONDS);
+   string reportTimeStr  = (g_ti_reportTime==0)  ? "never" : TimeToString(g_ti_reportTime,TIME_SECONDS);
+
    #define COL  "  ║  "
    #define SEP  "╠══════════════════════════╦══════════════════════════╣\n"
    #define TOP  "╔══════════════════════════╦══════════════════════════╗\n"
@@ -1591,7 +1694,7 @@ void UpdateChartDisplay()
    string d = "";
 
    d += TOP;
-   d += "║   UNICORE v5.17 XAUUSD     " + COL + "  MSV=PRIMARY  Manual Exit  ║\n";
+   d += "║   UNICORE v5.19 XAUUSD     " + COL + "  MSV=PRIMARY  Manual Exit  ║\n";
    d += SEP;
 
    d += "║ STATUS: " + g_lastSignalStatus + ENDF;
@@ -1617,8 +1720,11 @@ void UpdateChartDisplay()
    d += SEP;
 
    d += "╠══════════════════════════════════════════════════╣\n";
-   d += "║  🤖 TRADING INTELLIGENCE AI (v5.17)               \n";
+   d += "║  🤖 TRADING INTELLIGENCE AI (v5.19)               \n";
    d += tiRow + ENDF;
+   d += "║ Predict: " + g_ti_predictStatus + COL + predictTimeStr + "\n";
+   d += "║ Patch:   " + g_ti_patchStatus   + COL + patchTimeStr   + "\n";
+   d += "║ Report:  " + g_ti_reportStatus  + COL + reportTimeStr  + "\n";
    d += SEP;
 
    d += "╠══════════════════════════════════════════════════╣\n";
