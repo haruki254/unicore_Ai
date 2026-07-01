@@ -1309,7 +1309,7 @@ void CheckForNewSignals()
                              iso, SupabaseKey);
    string headers = "Authorization: Bearer "+SupabaseKey+"\r\nContent-Type: application/json\r\n";
    char data[], result[]; string resHeaders; ResetLastError();
-   int res = WebRequest("GET",url,headers,"",5000,data,0,result,resHeaders);
+   int res = WebRequest("GET",url,headers,5000,data,result,resHeaders);
    if(res==-1){ int err=GetLastError(); g_lastSignalStatus="Connection error: "+IntegerToString(err); return; }
    string response = CharArrayToString(result);
    if(StringLen(response)<3){ g_lastSignalStatus="Waiting..."; return; }
@@ -1523,7 +1523,7 @@ void UpdateSignalStatus(string signalID, string newStatus)
    string body = "{\"status\":\""+newStatus+"\"}";
    char data[], result[]; string resHeaders;
    StringToCharArray(body, data, 0, StringLen(body));
-   int res = WebRequest("PATCH",url,headers,"",5000,data,StringLen(body),result,resHeaders);
+   int res = WebRequest("PATCH",url,headers,5000,data,result,resHeaders);
 
    g_ti_patchTime = TimeCurrent();
    // Supabase PATCH with Prefer: return=minimal replies 204 on success, not 200
