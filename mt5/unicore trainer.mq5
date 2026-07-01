@@ -764,7 +764,9 @@ TIResult TI_CheckSignal(string action, string strategy)
 
    double balance    = AccountInfoDouble(ACCOUNT_BALANCE);
    double equity     = AccountInfoDouble(ACCOUNT_EQUITY);
-   double drawdown   = (balance > 0.0) ? (balance - equity) / balance : 0.0;
+   // Clamp to >=0: when equity > balance (floating profit), the raw formula
+   // goes negative, and the API rejects negative account_drawdown_pct (422).
+   double drawdown   = (balance > 0.0) ? MathMax(0.0, (balance - equity) / balance) : 0.0;
    double spreadPts  = (double)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
    double spreadPips = spreadPts / 10.0;
 
@@ -815,6 +817,7 @@ TIResult TI_CheckSignal(string action, string strategy)
    if(httpCode < 0 || httpCode != 200)
    {
       Print("[TI] API unreachable (http=", httpCode, ") — fail-open, trade allowed");
+      Print("[TI] Response body: ", CharArrayToString(result));
       g_ti_status         = "⚠️ API offline — trades allowed";
       g_ti_predictStatus  = StringFormat("FAIL http=%d (err=%d)", httpCode, GetLastError());
       g_ti_predictTime    = TimeCurrent();
@@ -921,6 +924,7 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
    {
       g_ti_reportStatus = StringFormat("FAIL http=%d (err=%d)", res, GetLastError());
       Print("[TI] ⚠️ Failed to report trade #", dealTicket, " (http=", res, ")");
+      Print("[TI] Response body: ", CharArrayToString(result));
    }
    else
    {
