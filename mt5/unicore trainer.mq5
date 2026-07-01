@@ -702,6 +702,20 @@ void RouteSignal(string id, string action, string strategy, double entry, double
 // TI_CheckSignal now returns a TIResult struct so snapshot_id
 // and prediction_id are available to OpenTrade().
 // ============================================================
+
+// v5.19: TimeToString() emits "yyyy.mm.dd hh:mi:ss" (dot-separated date).
+// pydantic/FastAPI's datetime parser is RFC-3339/ISO-8601 only and requires
+// dashes ("-") between date components, so that string fails validation with
+// 422 "invalid date separator, expected `-`" on every single /trade/update
+// call. This produces the equivalent "yyyy-mm-ddThh:mi:ss" string instead.
+string TI_ISO8601(datetime t)
+{
+   MqlDateTime s;
+   TimeToStruct(t, s);
+   return StringFormat("%04d-%02d-%02dT%02d:%02d:%02d",
+                        s.year, s.mon, s.day, s.hour, s.min, s.sec);
+}
+
 string TI_Candles(ENUM_TIMEFRAMES tf, int count)
 {
    MqlRates rates[];
@@ -764,9 +778,12 @@ TIResult TI_CheckSignal(string action, string strategy)
 
    double balance    = AccountInfoDouble(ACCOUNT_BALANCE);
    double equity     = AccountInfoDouble(ACCOUNT_EQUITY);
-   // Clamp to >=0: when equity > balance (floating profit), the raw formula
-   // goes negative, and the API rejects negative account_drawdown_pct (422).
-   double drawdown   = (balance > 0.0) ? MathMax(0.0, (balance - equity) / balance) : 0.0;
+   // Clamp to [0,1]: equity > balance (floating profit) sends the raw formula
+   // negative; a deep floating loss (equity <= 0, e.g. before a stop-out fires)
+   // pushes it above 1.0. The API rejects account_drawdown_pct outside [0,1]
+   // AND account_equity <= 0 in the same request — both are 422s (v5.19 fix).
+   double drawdown     = (balance > 0.0) ? MathMin(1.0, MathMax(0.0, (balance - equity) / balance)) : 0.0;
+   double equityForApi = MathMax(0.01, equity);
    double spreadPts  = (double)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
    double spreadPips = spreadPts / 10.0;
 
@@ -801,7 +818,7 @@ TIResult TI_CheckSignal(string action, string strategy)
       TI_Candles(PERIOD_H1,  20),
       TI_Candles(PERIOD_H4,  10),
       TI_Candles(PERIOD_D1,   5),
-      balance, equity, drawdown,
+      balance, equityForApi, drawdown,
       (int)g_loss_streak,
       (int)g_win_streak,
       g_todayTradeCount
@@ -813,6 +830,7 @@ TIResult TI_CheckSignal(string action, string strategy)
    string resHeaders;
    StringToCharArray(json, post, 0, StringLen(json));
 
+   ResetLastError();
    int httpCode = WebRequest("POST", url, headers, TI_Timeout_ms, post, result, resHeaders);
    if(httpCode < 0 || httpCode != 200)
    {
@@ -909,7 +927,7 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
       session,
       lotSize,
       maxDrawdownPips,
-      TimeToString(openedAt, TIME_DATE|TIME_SECONDS)
+      TI_ISO8601(openedAt)
    );
 
    string url     = TI_API_URL + "/trade/update";
@@ -918,6 +936,7 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
    string resHeaders;
    StringToCharArray(json, post, 0, StringLen(json));
 
+   ResetLastError();
    int res = WebRequest("POST", url, headers, TI_Timeout_ms, post, result, resHeaders);
    g_ti_reportTime = TimeCurrent();
    if(res < 0 || res != 200)
@@ -1523,6 +1542,7 @@ void UpdateSignalStatus(string signalID, string newStatus)
    string body = "{\"status\":\""+newStatus+"\"}";
    char data[], result[]; string resHeaders;
    StringToCharArray(body, data, 0, StringLen(body));
+   ResetLastError();
    int res = WebRequest("PATCH",url,headers,5000,data,result,resHeaders);
 
    g_ti_patchTime = TimeCurrent();
