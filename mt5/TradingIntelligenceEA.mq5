@@ -13,7 +13,7 @@
 
 //── Input Parameters ────────────────────────────────────────────
 input string   API_URL        = "http://127.0.0.1:8000";   // Python API URL
-input string   API_KEY        = "change-me";                // API Secret Key
+input string   API_KEY        = "@Youtube 2017";            // API Secret Key
 input double   LOT_SIZE       = 0.01;                       // Lot size
 input double   STOP_LOSS_PIPS = 20.0;                       // Stop Loss in pips
 input double   TAKE_PROFIT_PIPS = 40.0;                     // Take Profit in pips
@@ -26,6 +26,7 @@ input bool     ALLOW_FLIP     = true;                       // Allow AI to flip 
 input bool     LOG_ALL        = true;                       // Log every signal
 input int      MAX_SPREAD_POINTS = 30;                      // Max spread in points
 input int      MAGIC_NUMBER   = 20240101;                   // EA Magic Number
+input string   EA_ID          = "default";                  // EA identifier (FRACTAL/OB/TRAP/etc.)
 
 //── Global objects ───────────────────────────────────────────────
 CTrade         Trade;
@@ -41,6 +42,15 @@ int      g_trades_today  = 0;
 double   g_loss_streak   = 0;
 double   g_win_streak    = 0;
 
+//── Per-trade context (stored from /predict response, sent on /trade/update) ──
+string   g_snapshot_id   = "";   // snapshot_id returned by /predict
+string   g_prediction_id = "";   // prediction_id returned by /predict
+string   g_regime        = "";   // regime returned by /predict
+string   g_session       = "";   // session returned by /predict
+string   g_ea_id         = "";   // resolved from EA_ID input param
+double   g_entry_price   = 0.0;  // entry price of the open trade
+string   g_direction     = "";   // direction of the open trade
+
 //+------------------------------------------------------------------+
 //| Expert initialization                                             |
 //+------------------------------------------------------------------+
@@ -50,10 +60,31 @@ int OnInit()
     Trade.SetDeviationInPoints(10);
     Trade.SetTypeFilling(ORDER_FILLING_FOK);
 
+    // Resolve ea_id: prefer EA_ID input, else derive from MAGIC_NUMBER
+    if(EA_ID != "" && EA_ID != "default") {
+        g_ea_id = EA_ID;
+    } else {
+        switch(MAGIC_NUMBER) {
+            case 77701:  g_ea_id = "FRACTAL";     break;
+            case 77702:  g_ea_id = "OB";           break;
+            case 77703:  g_ea_id = "TRAP";         break;
+            case 77704:  g_ea_id = "LIQUIDITY";    break;
+            case 77705:  g_ea_id = "AMT";          break;
+            case 77706:  g_ea_id = "LVN";          break;
+            case 77707:  g_ea_id = "SMARTENTRY";   break;
+            case 777701: g_ea_id = "FVG";          break;
+            case 88801:  g_ea_id = "UTBOT";        break;
+            case 88888:  g_ea_id = "MSV";          break;
+            default:     g_ea_id = "default";      break;
+        }
+    }
+
     Print("===========================================");
     Print("  Trading Intelligence EA v1.0 Starting");
-    Print("  Symbol: ",   g_symbol);
-    Print("  API:    ",   API_URL);
+    Print("  Symbol:  ", g_symbol);
+    Print("  API:     ", API_URL);
+    Print("  EA ID:   ", g_ea_id);
+    Print("  Magic:   ", MAGIC_NUMBER);
     Print("===========================================");
 
     // Verify API connectivity
@@ -135,6 +166,14 @@ void ProcessSignal(string eaSignal)
     string predId         = ParseJsonString(response, "prediction_id");
     string blockReasons   = ParseJsonString(response, "block_reasons");
     double inferenceMs    = ParseJsonDouble(response, "inference_ms");
+    string snapshotId     = ParseJsonString(response, "snapshot_id");
+    string sessionStr     = ParseJsonString(response, "session");
+
+    // ── Store context globals for use when trade closes ──────────
+    g_snapshot_id   = snapshotId;
+    g_prediction_id = predId;
+    g_regime        = regime;
+    g_session       = sessionStr;
 
     Print("┌─────────────────────────────────────────");
     Print("│  EA Signal:    ", eaSignal);
@@ -197,9 +236,13 @@ void ExecuteTrade(
     sl = NormalizeDouble(sl, g_digits);
     tp = NormalizeDouble(tp, g_digits);
 
-    string dirStr = (orderType == ORDER_TYPE_BUY) ? "BUY" : "SELL";
+    string dirStr  = (orderType == ORDER_TYPE_BUY) ? "BUY" : "SELL";
     string flipStr = isFlip ? " [FLIP]" : "";
     string comment = "TI_" + predictionId + flipStr;
+
+    // ── Store direction and entry price for the close payload ────
+    g_direction   = dirStr;
+    g_entry_price = price;
 
     Print("📤 Opening ", dirStr, " @ ", price,
           " SL=", sl, " TP=", tp,
@@ -283,13 +326,18 @@ void OnTradeTransaction(
           " | ", outcome,
           " | ", DoubleToString(pnlPips,1), " pips");
 
-    // Report to Python API
+    // ── Report to Python API — includes full context for AI learning ──
     string json = StringFormat(
         "{\"mt5_ticket\":%d,\"symbol\":\"%s\","
         "\"direction\":\"%s\",\"entry_price\":%f,"
         "\"exit_price\":%f,\"pnl_pips\":%f,"
         "\"pnl_usd\":%f,\"outcome\":\"%s\","
-        "\"was_flipped\":false}",
+        "\"was_flipped\":false,"
+        "\"ea_id\":\"%s\","
+        "\"snapshot_id\":\"%s\","
+        "\"prediction_id\":\"%s\","
+        "\"regime\":\"%s\","
+        "\"session\":\"%s\"}",
         (int)dealTicket,
         g_symbol,
         wasBuy ? "BUY" : "SELL",
@@ -297,12 +345,26 @@ void OnTradeTransaction(
         exitPrice,
         pnlPips,
         profit,
-        outcome
+        outcome,
+        g_ea_id,
+        g_snapshot_id,
+        g_prediction_id,
+        g_regime,
+        g_session
     );
 
     string resp = HttpPost("/trade/update", json);
     if(resp == "")
         Print("⚠️ Failed to report trade close to API");
+    else {
+        // Clear context globals after successful report
+        g_snapshot_id   = "";
+        g_prediction_id = "";
+        g_regime        = "";
+        g_session       = "";
+        g_direction     = "";
+        g_entry_price   = 0.0;
+    }
 }
 
 //+------------------------------------------------------------------+
@@ -327,6 +389,7 @@ string BuildPredictionRequest(string eaSignal)
     string json = StringFormat(
         "{"
         "\"symbol\":\"%s\","
+        "\"ea_id\":\"%s\","
         "\"ea_signal\":\"%s\","
         "\"price\":%f,"
         "\"spread_pips\":%f,"
@@ -345,6 +408,7 @@ string BuildPredictionRequest(string eaSignal)
         "}"
         "}",
         g_symbol,
+        g_ea_id,
         eaSignal,
         SymbolInfoDouble(g_symbol, SYMBOL_BID),
         spreadPips,

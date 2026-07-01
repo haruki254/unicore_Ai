@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+logs/
+*.log
+data/*.pkl
+models_saved/
+catboost_info/

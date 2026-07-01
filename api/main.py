@@ -263,14 +263,34 @@ async def update_trade(
     async def _process():
         try:
             # Update DB
-            db.update_trade_outcome(
-                mt5_ticket = req.mt5_ticket,
-                outcome    = req.outcome,
-                pnl_pips   = req.pnl_pips,
-                pnl_usd    = req.pnl_usd,
-                exit_price = req.exit_price,
-                closed_at  = req.closed_at or datetime.utcnow(),
+            history_ok = db.update_trade_outcome(
+                mt5_ticket      = req.mt5_ticket,
+                outcome         = req.outcome,
+                pnl_pips        = req.pnl_pips,
+                pnl_usd         = req.pnl_usd,
+                exit_price      = req.exit_price,
+                closed_at       = req.closed_at or datetime.utcnow(),
+                # v-- these were silently dropped before; trade_history
+                #     was landing with default/blank values on every row
+                symbol            = req.symbol,
+                direction         = req.direction,
+                entry_price       = req.entry_price,
+                lot_size          = req.lot_size,
+                session           = req.session,
+                ea_id             = req.ea_id,
+                prediction_id     = req.prediction_id,
+                snapshot_id       = req.snapshot_id,
+                was_flipped       = req.was_flipped,
+                original_signal   = req.original_signal,
+                regime            = req.regime,
+                max_drawdown_pips = req.max_drawdown_pips,
+                opened_at         = req.opened_at,
             )
+            if not history_ok:
+                api_logger.error(
+                    "trade_history write failed for ticket {} — check db_logger output",
+                    req.mt5_ticket,
+                )
 
             api_logger.log_trade_close(
                 ticket      = req.mt5_ticket,

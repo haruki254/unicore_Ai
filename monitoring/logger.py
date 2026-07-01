@@ -11,6 +11,20 @@ try:
 except ImportError:
     _USE_LOGURU = False
 
+if _USE_LOGURU:
+    # Without this, loguru only prints to stderr — nothing ever reaches
+    # logs/trading_intelligence.log, so db_logger.error(...) calls (e.g.
+    # a failed trade_history insert) were invisible unless you had the
+    # console output open at the exact moment they fired.
+    Path("./logs").mkdir(exist_ok=True)
+    _loguru.add(
+        "./logs/trading_intelligence.log",
+        level="DEBUG",
+        rotation="10 MB",
+        retention="14 days",
+        enqueue=True,
+    )
+
 # ── Bootstrap stdlib fallback ─────────────────────────────────
 def _setup_stdlib():
     Path("./logs").mkdir(exist_ok=True)

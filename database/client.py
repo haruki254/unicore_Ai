@@ -66,12 +66,22 @@ class DatabaseClient:
 
     def _ins(self, table: str, data: dict) -> bool:
         if not self._connected:
-            return True
+            db_logger.warning(
+                "insert {} SKIPPED — client not connected (check SUPABASE_URL / "
+                "SUPABASE_SERVICE_KEY)", table
+            )
+            return False
+        # Postgres rejects "" for typed columns (uuid, numeric, timestamp, etc).
+        # The EA sends "" instead of omitting a field when it has no value —
+        # coerce to NULL so a missing snapshot_id/prediction_id doesn't fail
+        # the whole insert.
+        clean = {k: (None if isinstance(v, str) and v.strip() == "" else v)
+                 for k, v in data.items()}
         try:
-            self._tbl(table).insert(data).execute()
+            self._tbl(table).insert(clean).execute()
             return True
         except Exception as e:
-            db_logger.error("insert {} failed: {}", table, e)
+            db_logger.error("insert {} failed: {} | payload={}", table, e, clean)
             return False
 
     # =========================================================
@@ -189,13 +199,18 @@ class DatabaseClient:
                              session=None, ea_id="default",
                              prediction_id=None, snapshot_id=None,
                              was_flipped=False, original_signal=None,
-                             regime=None, max_drawdown_pips=0.0):
+                             regime=None, max_drawdown_pips=0.0,
+                             symbol="XAUUSD", opened_at=None):
         """
         Update outcome on the trades table AND insert into trade_history
         so generate_sample_data.py picks it up for the next retrain.
         """
         if not self._connected:
-            return True
+            db_logger.warning(
+                "update_trade_outcome SKIPPED for ticket {} — client not connected",
+                mt5_ticket,
+            )
+            return False
         try:
             self._tbl("trades").update({
                 "ea_id":      ea_id,
@@ -209,11 +224,12 @@ class DatabaseClient:
             db_logger.error("update_trade_outcome (trades): {}", e)
 
         # Always write to trade_history — this is what generate_sample_data.py reads
-        self.save_trade_to_history({
+        history_ok = self.save_trade_to_history({
             "mt5_ticket":   mt5_ticket,
             "ea_id":        ea_id,
             "prediction_id": prediction_id,
             "snapshot_id":  snapshot_id,
+            "symbol":       symbol,
             "direction":    direction,
             "was_flipped":  was_flipped,
             "original_signal": original_signal,
@@ -226,9 +242,15 @@ class DatabaseClient:
             "session":      session,
             "regime":       regime,
             "max_drawdown_pips": max_drawdown_pips,
+            "opened_at":    opened_at,
             "closed_at":    closed_at or datetime.utcnow(),
         })
-        return True
+        if not history_ok:
+            db_logger.error(
+                "trade_history insert FAILED for mt5_ticket={} — see prior 'insert trade_history failed' log line",
+                mt5_ticket,
+            )
+        return history_ok
 
     def save_model_result(self, r: dict) -> bool:
         if not self._connected:
@@ -542,4 +564,4 @@ def _json_or(v, default):
             return json.loads(v)
         except Exception:
             return default
-    return v
+    

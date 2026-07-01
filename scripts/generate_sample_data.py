@@ -61,6 +61,8 @@ def fetch_trades(client: "Client") -> list[dict]:
     """
     Page through trade_history and return every closed trade.
     Supabase caps single responses at 1,000 rows, so we paginate.
+    Joins snapshot features where snapshot_id is set so _row_to_trade
+    can use real market conditions instead of fabricated ones.
     """
     rows, page_size, offset = [], 1000, 0
     while True:
@@ -69,6 +71,7 @@ def fetch_trades(client: "Client") -> list[dict]:
             .select("*")
             .not_.is_("outcome", "null")          # only labeled trades
             .not_.is_("closed_at", "null")
+            .neq("regime", "UNKNOWN")             # exclude unclassified rows
             .order("closed_at", desc=False)
             .range(offset, offset + page_size - 1)
             .execute()
@@ -80,6 +83,44 @@ def fetch_trades(client: "Client") -> list[dict]:
         offset += page_size
 
     print(f"  Fetched {len(rows)} trades from Supabase.")
+
+    # ── Enrich with snapshot features where available ─────────────
+    # Collect unique snapshot IDs that are non-null
+    snap_ids = list({r["snapshot_id"] for r in rows if r.get("snapshot_id")})
+    snap_features: dict[str, dict] = {}
+
+    if snap_ids:
+        print(f"  Fetching features for {len(snap_ids)} linked snapshots...")
+        # Batch fetch in chunks of 100 to avoid URL length limits
+        for i in range(0, len(snap_ids), 100):
+            chunk = snap_ids[i:i+100]
+            try:
+                resp = (
+                    client.table("market_snapshots")
+                    .select("id,ea_id,features,candles_m5,candles_m15,candles_h1,candles_h4,candles_d1,captured_at,spread_pips,close_price")
+                    .in_("id", chunk)
+                    .execute()
+                )
+                for s in (resp.data or []):
+                    snap_features[s["id"]] = s
+            except Exception as e:
+                print(f"  Warning: snapshot batch {i//100+1} failed: {e}")
+
+        # Attach snapshot data to each trade row
+        enriched = 0
+        for row in rows:
+            sid = row.get("snapshot_id")
+            if sid and sid in snap_features:
+                snap = snap_features[sid]
+                row["_snapshot"] = snap
+                # Use snapshot ea_id if trade row has none / default
+                if not row.get("ea_id") or row["ea_id"] == "default":
+                    row["ea_id"] = snap.get("ea_id", "default")
+                enriched += 1
+        print(f"  Enriched {enriched}/{len(rows)} trades with real snapshot features.")
+    else:
+        print("  No snapshot_id links found — using reconstructed features (consider running backfill).")
+
     return rows
 
 
@@ -136,36 +177,69 @@ def _row_to_trade(row: dict, pipeline: FeaturePipeline) -> dict | None:
     exit_p    = float(row.get("exit_price") or entry)
     spread    = float(row.get("spread_pips") or 1.0) if "spread_pips" in row else 1.0
 
-    # ── Build a minimal snapshot so FeaturePipeline can compute features ──
-    # We reconstruct a plausible price series from entry → exit
-    n = 110
-    price_move = (exit_p - entry) / max(n, 1)
-    closes = entry + np.cumsum(np.random.randn(n) * abs(price_move) * 0.5) + np.linspace(0, exit_p - entry, n)
-    highs  = closes + np.abs(np.random.randn(n) * abs(price_move) * 0.3)
-    lows   = closes - np.abs(np.random.randn(n) * abs(price_move) * 0.3)
-    opens  = np.roll(closes, 1); opens[0] = closes[0]
-    vols   = np.random.randint(200, 2000, n).astype(float)
+    # ── Use real snapshot features when available, else reconstruct ──
+    snap = row.get("_snapshot")  # attached by fetch_trades() if snapshot_id linked
 
-    df = pd.DataFrame({"open": opens, "high": highs, "low": lows, "close": closes, "volume": vols})
-    candles = df.to_dict("records")
+    if snap and snap.get("features"):
+        # Real features from the market snapshot captured at trade entry time
+        raw_features = snap["features"]
+        if isinstance(raw_features, str):
+            import json
+            raw_features = json.loads(raw_features)
+        features = {k: raw_features.get(k, 0.0) for k in ALL_FEATURE_NAMES}
 
-    snapshot = {
-        "symbol":      row.get("symbol", "XAUUSD"),
-        "timestamp":   opened_at,
-        "price":       exit_p,
-        "spread_pips": spread,
-        "candles_m5":  candles,
-        "candles_m15": candles[::3],
-        "candles_h1":  candles[::12],
-        "candles_h4":  candles[::48],
-        "candles_d1":  candles[::288],
-    }
+        # Use real candles from snapshot if available for feature recompute
+        if snap.get("candles_m5"):
+            try:
+                snapshot = {
+                    "symbol":      row.get("symbol", "XAUUSD"),
+                    "timestamp":   opened_at,
+                    "price":       float(snap.get("close_price") or exit_p),
+                    "spread_pips": float(snap.get("spread_pips") or spread),
+                    "candles_m5":  snap["candles_m5"],
+                    "candles_m15": snap.get("candles_m15") or snap["candles_m5"][::3],
+                    "candles_h1":  snap.get("candles_h1")  or snap["candles_m5"][::12],
+                    "candles_h4":  snap.get("candles_h4")  or snap["candles_m5"][::48],
+                    "candles_d1":  snap.get("candles_d1")  or snap["candles_m5"][::288],
+                }
+                recomputed = pipeline.compute(snapshot)
+                # Merge: prefer recomputed but fill gaps from stored features
+                for k in ALL_FEATURE_NAMES:
+                    if recomputed.get(k) is not None:
+                        features[k] = recomputed[k]
+            except Exception as e:
+                warnings.warn(f"Snapshot recompute failed for ticket {row.get('mt5_ticket')}: {e}")
+    else:
+        # Fallback: reconstruct a plausible price series from entry → exit
+        # This path is used for legacy trades with no snapshot_id
+        n = 110
+        price_move = (exit_p - entry) / max(n, 1)
+        closes = entry + np.cumsum(np.random.randn(n) * abs(price_move) * 0.5) + np.linspace(0, exit_p - entry, n)
+        highs  = closes + np.abs(np.random.randn(n) * abs(price_move) * 0.3)
+        lows   = closes - np.abs(np.random.randn(n) * abs(price_move) * 0.3)
+        opens  = np.roll(closes, 1); opens[0] = closes[0]
+        vols   = np.random.randint(200, 2000, n).astype(float)
 
-    try:
-        features = pipeline.compute(snapshot)
-    except Exception as e:
-        warnings.warn(f"Feature computation failed for ticket {row.get('mt5_ticket')}: {e}")
-        features = {k: 0.0 for k in ALL_FEATURE_NAMES}
+        df = pd.DataFrame({"open": opens, "high": highs, "low": lows, "close": closes, "volume": vols})
+        candles = df.to_dict("records")
+
+        snapshot = {
+            "symbol":      row.get("symbol", "XAUUSD"),
+            "timestamp":   opened_at,
+            "price":       exit_p,
+            "spread_pips": spread,
+            "candles_m5":  candles,
+            "candles_m15": candles[::3],
+            "candles_h1":  candles[::12],
+            "candles_h4":  candles[::48],
+            "candles_d1":  candles[::288],
+        }
+
+        try:
+            features = pipeline.compute(snapshot)
+        except Exception as e:
+            warnings.warn(f"Feature computation failed for ticket {row.get('mt5_ticket')}: {e}")
+            features = {k: 0.0 for k in ALL_FEATURE_NAMES}
 
     # win_prob back-calculated from outcome + a little noise
     win_prob = 0.65 if outcome == "WIN" else 0.35
@@ -173,16 +247,26 @@ def _row_to_trade(row: dict, pipeline: FeaturePipeline) -> dict | None:
 
     conditions = {k: features.get(k, 0.0) for k in ALL_FEATURE_NAMES}
 
+    # ea_id: prefer from snapshot (authoritative), then from row
+    snap = row.get("_snapshot")
+    ea_id = (
+        (snap.get("ea_id") if snap else None)
+        or row.get("ea_id")
+        or "default"
+    )
+
     return {
-        "id":         str(row.get("id") or uuid.uuid4()),
-        "mt5_ticket": row.get("mt5_ticket"),
-        "symbol":     row.get("symbol", "XAUUSD"),
-        "direction":  direction,
-        "outcome":    outcome,
-        "pnl_pips":   round(pnl, 2),
-        "regime":     regime,
-        "session":    session,
-        "opened_at":  opened_at.isoformat(),
+        "id":          str(row.get("id") or uuid.uuid4()),
+        "mt5_ticket":  row.get("mt5_ticket"),
+        "snapshot_id": row.get("snapshot_id"),
+        "ea_id":       ea_id,
+        "symbol":      row.get("symbol", "XAUUSD"),
+        "direction":   direction,
+        "outcome":     outcome,
+        "pnl_pips":    round(pnl, 2),
+        "regime":      regime,
+        "session":     session,
+        "opened_at":   opened_at.isoformat(),
         "conditions": conditions,
         "risk_context": {
             "account_drawdown_pct": float(row.get("account_drawdown_pct") or np.random.uniform(0, 0.03)),

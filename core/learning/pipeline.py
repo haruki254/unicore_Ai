@@ -136,13 +136,31 @@ class LearningPipeline:
         return (datetime.utcnow() - self._last_train_ts) >= interval
 
     def _fetch_trades(self) -> List[Dict]:
-        """Fetch completed trades from DB or local cache."""
+        """Fetch completed trades from DB or local cache.
+
+        Excludes trades where regime=UNKNOWN — those rows carry no
+        meaningful market-context signal and would pollute the training
+        set.  The Supabase query in generate_sample_data also filters
+        them at source (.neq("regime", "UNKNOWN")), but this guard
+        ensures the pipeline is clean regardless of data origin.
+        """
         if self.db:
             try:
-                return self.db.fetch_completed_trades()
+                trades = self.db.fetch_completed_trades()
             except Exception as e:
                 model_logger.error("DB fetch failed: {} — using empty set", e)
                 return []
+
+            before = len(trades)
+            trades = [t for t in trades if t.get("regime") != "UNKNOWN"]
+            dropped = before - len(trades)
+            if dropped:
+                model_logger.info(
+                    "Excluded {} UNKNOWN-regime trades from training set "
+                    "({} → {} rows)",
+                    dropped, before, len(trades),
+                )
+            return trades
         return []
 
     def _train_trader_ai(self, trades: List[Dict]) -> Dict[str, Any]:

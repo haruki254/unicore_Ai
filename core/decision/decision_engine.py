@@ -313,10 +313,6 @@ class DecisionEngine:
             if buy_prob  > FLIP_THRESHOLD          → FLIP_TO_BUY
             else                                   → BLOCK (ambiguous)
         """
-        # Hard block
-        if risk_dec == "BLOCK":
-            return "BLOCK"
-
         # Regime block
         if regime in ("news_volatility",):
             return "BLOCK"

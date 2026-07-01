@@ -147,6 +147,7 @@ class TradeUpdateRequest(BaseModel):
     pnl_usd:      float = 0.0
     outcome:      str   = Field(..., pattern="^(WIN|LOSS|BREAKEVEN)$")
     closed_at:    Optional[datetime] = None
+    opened_at:    Optional[datetime] = None
     max_drawdown_pips: float = 0.0
     was_flipped:  bool = False
     original_signal: Optional[str] = None
