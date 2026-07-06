@@ -1,6 +1,72 @@
 //+------------------------------------------------------------------+
 //|                                                    Unicore.mq5   |
 //|         Unicore — XAUUSD | Multi-Strategy Executor               |
+//|         v5.22: five trade_history data-quality fixes, found by     |
+//|         inspecting exported rows before AI training                |
+//|           1) max_drawdown_pips was hardcoded to 0.0 for every       |
+//|              trade — never actually tracked. Now tracked live      |
+//|              every tick (UpdateDrawdownTracking(), called from     |
+//|              OnTick()) as the worst adverse move seen while each    |
+//|              position is open. Sent as JSON null (not 0) for the   |
+//|              rare case a position predates the current EA run and  |
+//|              was never tracked — 0 would misleadingly say "never   |
+//|              moved against you".                                   |
+//|           2) opened_at / lot_size / session for a closed trade came |
+//|              only from the in-memory g_ticketMeta[] table, which   |
+//|              is empty for any position still open across an EA     |
+//|              restart — producing 1970-01-01 timestamps and 0.00    |
+//|              lot rows. Now read straight from the position's own   |
+//|              DEAL_ENTRY_IN opening deal (DEAL_TIME / DEAL_VOLUME),  |
+//|              which MT5 keeps regardless of EA restarts; in-memory   |
+//|              meta is now only a fallback if history lookup comes   |
+//|              back empty. DEAL_TIME is broker/server time like      |
+//|              TimeCurrent() was in the v5.21 bug, so it's converted |
+//|              to GMT the same way before use.                       |
+//|           3) magic_number was re-derived by guessing from the       |
+//|              decoded strategy string (GetMagicForStrategy), so it  |
+//|              inherited any strategy-decode failure. Now read        |
+//|              directly from the closing deal's own DEAL_MAGIC —      |
+//|              always correct, independent of the comment/strategy.  |
+//|           4) original_signal was parsed into ParsedSignal.          |
+//|              original_action at signal-parse time (e.g. before      |
+//|              TRAP's built-in inversion) but was never threaded any  |
+//|              further — RouteSignal()/OpenTrade() dropped it, so the |
+//|              column was always null. Now carried through            |
+//|              StoreMeta()/g_ticketMeta[] and reported alongside      |
+//|              direction, so a TRAP or AI-flip trade's original       |
+//|              pre-inversion signal is recoverable independently of  |
+//|              what actually executed.                                |
+//|           5) The "couldn't decode a strategy for this trade"        |
+//|              sentinel was the literal string "default", which reads |
+//|              like a real strategy bucket instead of an unresolved   |
+//|              case. Renamed to "UNKNOWN" (DecodeStrategy() fallback  |
+//|              and the matching check in OnTradeTransaction()).       |
+//|           Also: TI_ParseStr() now matches `"key": "value"` (space   |
+//|           after the colon) as well as `"key":"value"` — that's how |
+//|           Python's default json.dumps formats output, and the      |
+//|           strict form could silently miss a field.                  |
+//|           NOTE: strategy/magic_number/regime/prediction_id showing  |
+//|           null in trade_history despite this EA sending real values |
+//|           (ea_id and snapshot_id land correctly with the same       |
+//|           payload) points at the /trade/update handler or the      |
+//|           Supabase write path, not at this file — check that side  |
+//|           too, this patch can't fix code it can't see.              |
+//|                                                                     |
+//|         v5.21: two trade_history data-integrity fixes             |
+//|           1) direction was read from the CLOSING deal's own       |
+//|              DEAL_TYPE in OnTradeTransaction(). MT5 always closes |
+//|              a BUY with a SELL deal and vice versa, so every row  |
+//|              had direction (and pnl_pips, derived from it) exactly|
+//|              inverted from the real trade. Now read from the      |
+//|              DEAL_ENTRY_IN opening deal instead. pnl_usd/outcome  |
+//|              were unaffected — they come straight from MT5's own  |
+//|              DEAL_PROFIT, not from this logic.                    |
+//|           2) opened_at was captured with TimeCurrent() (broker/   |
+//|              server time) but stored/compared as UTC downstream,  |
+//|              same as closed_at/created_at — running hours ahead   |
+//|              of them. Now uses TimeGMT(), like the rest of the EA |
+//|              already does for session/lookback timing.            |
+//|                                                                   |
 //|         v5.20: manual override for AI BLOCK decisions             |
 //|           TI_OverrideBlock (input) — when true, a BLOCK verdict   |
 //|           no longer stops the trade; it still logs/reports to     |
@@ -52,7 +118,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Unicore"
 #property link      "https://unicoregoldbot.tiiny.site"
-#property version   "5.20"
+#property version   "5.22"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -243,8 +309,10 @@ struct TicketMeta
    string   regime;
    double   lotSize;
    string   strategy;
-   datetime openedAt;    // v5.17: stored at order open, sent to /trade/update
-   string   openSession; // v5.18: session captured at open time, not close time
+   datetime openedAt;        // v5.17: stored at order open, sent to /trade/update
+   string   openSession;     // v5.18: session captured at open time, not close time
+   string   originalAction;  // v5.22: raw pre-TRAP/pre-flip signal, for original_signal
+   double   maxDrawdownPips; // v5.22: running worst adverse excursion, updated live in OnTick()
 };
 
 TicketMeta g_ticketMeta[MAX_TICKET_META];
@@ -252,20 +320,22 @@ int        g_ticketMetaCount = 0;
 
 void StoreMeta(ulong ticket, string snapshotId, string predictionId,
                string regime, double lotSize, string strategy,
-               datetime openedAt, string openSession)
+               datetime openedAt, string openSession, string originalAction)
 {
    // Update if already exists
    for(int i = 0; i < g_ticketMetaCount; i++)
    {
       if(g_ticketMeta[i].ticket == ticket)
       {
-         g_ticketMeta[i].snapshotId   = snapshotId;
-         g_ticketMeta[i].predictionId = predictionId;
-         g_ticketMeta[i].regime       = regime;
-         g_ticketMeta[i].lotSize      = lotSize;
-         g_ticketMeta[i].strategy     = strategy;
-         g_ticketMeta[i].openedAt     = openedAt;
-         g_ticketMeta[i].openSession  = openSession;
+         g_ticketMeta[i].snapshotId      = snapshotId;
+         g_ticketMeta[i].predictionId    = predictionId;
+         g_ticketMeta[i].regime          = regime;
+         g_ticketMeta[i].lotSize         = lotSize;
+         g_ticketMeta[i].strategy        = strategy;
+         g_ticketMeta[i].openedAt        = openedAt;
+         g_ticketMeta[i].openSession     = openSession;
+         g_ticketMeta[i].originalAction  = originalAction;   // v5.22
+         g_ticketMeta[i].maxDrawdownPips = 0.0;               // v5.22: fresh trade, reset
          return;
       }
    }
@@ -277,14 +347,16 @@ void StoreMeta(ulong ticket, string snapshotId, string predictionId,
          g_ticketMeta[i] = g_ticketMeta[i + 1];
       g_ticketMetaCount = MAX_TICKET_META - 1;
    }
-   g_ticketMeta[g_ticketMetaCount].ticket       = ticket;
-   g_ticketMeta[g_ticketMetaCount].snapshotId   = snapshotId;
-   g_ticketMeta[g_ticketMetaCount].predictionId = predictionId;
-   g_ticketMeta[g_ticketMetaCount].regime       = regime;
-   g_ticketMeta[g_ticketMetaCount].lotSize      = lotSize;
-   g_ticketMeta[g_ticketMetaCount].strategy     = strategy;
-   g_ticketMeta[g_ticketMetaCount].openedAt     = openedAt;
-   g_ticketMeta[g_ticketMetaCount].openSession  = openSession;
+   g_ticketMeta[g_ticketMetaCount].ticket          = ticket;
+   g_ticketMeta[g_ticketMetaCount].snapshotId      = snapshotId;
+   g_ticketMeta[g_ticketMetaCount].predictionId    = predictionId;
+   g_ticketMeta[g_ticketMetaCount].regime          = regime;
+   g_ticketMeta[g_ticketMetaCount].lotSize         = lotSize;
+   g_ticketMeta[g_ticketMetaCount].strategy        = strategy;
+   g_ticketMeta[g_ticketMetaCount].openedAt        = openedAt;
+   g_ticketMeta[g_ticketMetaCount].openSession     = openSession;
+   g_ticketMeta[g_ticketMetaCount].originalAction  = originalAction;   // v5.22
+   g_ticketMeta[g_ticketMetaCount].maxDrawdownPips = 0.0;              // v5.22
    g_ticketMetaCount++;
 }
 
@@ -312,6 +384,48 @@ void RemoveMeta(ulong ticket)
          g_ticketMetaCount--;
          return;
       }
+   }
+}
+
+// ============================================================
+// v5.22 — LIVE DRAWDOWN TRACKING
+// Runs every tick; for each open Unicore position, computes how far
+// price has moved against it right now (same pip convention as
+// pnl_pips) and keeps a running maximum in g_ticketMeta[].maxDrawdownPips.
+// This is the only way to capture max adverse excursion — unlike
+// opened_at/lot_size (v5.22 fix #2), MT5's own deal history has no
+// equivalent field to recover this from after the fact.
+// ============================================================
+void UpdateDrawdownTracking()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
+      if(!IsUnicoreMagic((ulong)PositionGetInteger(POSITION_MAGIC))) continue;
+
+      int metaIdx = -1;
+      for(int m = 0; m < g_ticketMetaCount; m++)
+      {
+         if(g_ticketMeta[m].ticket == ticket) { metaIdx = m; break; }
+      }
+      if(metaIdx < 0) continue; // no meta (position predates this EA run) — can't track
+
+      double entryPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+      long   posType     = PositionGetInteger(POSITION_TYPE);
+      double curPrice    = (posType == POSITION_TYPE_BUY)
+                          ? SymbolInfoDouble(_Symbol, SYMBOL_BID)
+                          : SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+
+      double adverseMove = (posType == POSITION_TYPE_BUY)
+                          ? (entryPrice - curPrice)
+                          : (curPrice - entryPrice);
+      if(adverseMove < 0) adverseMove = 0; // currently in profit — no drawdown right now
+
+      double adversePips = adverseMove / (_Point * 10.0);
+      if(adversePips > g_ticketMeta[metaIdx].maxDrawdownPips)
+         g_ticketMeta[metaIdx].maxDrawdownPips = adversePips;
    }
 }
 
@@ -366,10 +480,14 @@ bool IsDemoAccount()
 // SESSION HELPER  (v5.16)
 // Determines current trading session from server hour (GMT).
 // ============================================================
-string GetCurrentSession()
+// v5.22: split out from GetCurrentSession() so OnTradeTransaction() can
+// derive the session from a trade's *true* opened_at (recovered from MT5
+// deal history) instead of only ever being able to ask "what session is
+// it right now".
+string GetSessionForTime(datetime t)
 {
    MqlDateTime dt;
-   TimeToStruct(TimeGMT(), dt);
+   TimeToStruct(t, dt);
    int h = dt.hour;
    if(h >= 22 || h < 7)  return "asian";
    if(h >= 7  && h < 9)  return "overlap_asian_london";
@@ -378,6 +496,11 @@ string GetCurrentSession()
    if(h >= 13 && h < 17) return "new_york";
    if(h >= 17 && h < 22) return "off_hours";
    return "off_hours";
+}
+
+string GetCurrentSession()
+{
+   return GetSessionForTime(TimeGMT());
 }
 
 // ============================================================
@@ -551,7 +674,7 @@ string DecodeStrategy(string code)
    if(code=="I9") return "LIQUIDITY";
    if(code=="J0") return "SMARTENTRY";
    if(code=="K1") return "MSV";
-   return "default";
+   return "UNKNOWN";   // v5.22: renamed from "default" — this means "couldn't decode", not a real strategy
 }
 
 // ============================================================
@@ -683,7 +806,7 @@ bool IsMSVStrategy(string strategy)
 // ============================================================
 // SIGNAL ROUTING
 // ============================================================
-void RouteSignal(string id, string action, string strategy, double entry, double sl)
+void RouteSignal(string id, string action, string originalAction, string strategy, double entry, double sl)
 {
    if(!IsKnownStrategy(strategy)){ g_lastError="Unknown strategy: "+strategy; return; }
    if(strategy=="FVG" && g_fvgLastWinTime>0)
@@ -694,7 +817,7 @@ void RouteSignal(string id, string action, string strategy, double entry, double
    int existingTrades = CountStrategyTrades(strategy);
    if(existingTrades > 0)
       Print("║ [",strategy,"] Stacking — adding to ",IntegerToString(existingTrades)," existing trade(s)");
-   OpenTrade(id, action, strategy, sl);
+   OpenTrade(id, action, originalAction, strategy, sl);
 }
 
 // ============================================================
@@ -736,10 +859,20 @@ string TI_Candles(ENUM_TIMEFRAMES tf, int count)
 
 string TI_ParseStr(const string json, const string key)
 {
-   string search = "\"" + key + "\":\"";
-   int s = StringFind(json, search);
+   // v5.22: tolerate an optional space after the colon (e.g. {"key": "value"}),
+   // which is how Python's default json.dumps formats output — the strict
+   // no-space form alone would silently miss that and return "".
+   string searchTight  = "\"" + key + "\":\"";
+   string searchSpaced = "\"" + key + "\": \"";
+   int s = StringFind(json, searchTight);
+   int matchLen = StringLen(searchTight);
+   if(s < 0)
+   {
+      s = StringFind(json, searchSpaced);
+      matchLen = StringLen(searchSpaced);
+   }
    if(s < 0) return "";
-   s += StringLen(search);
+   s += matchLen;
    int e = StringFind(json, "\"", s);
    return (e < 0) ? "" : StringSubstr(json, s, e - s);
 }
@@ -884,13 +1017,15 @@ TIResult TI_CheckSignal(string action, string strategy)
    return res;
 }
 
-// ── v5.18: extended with magic_number + open-time session ──
+// ── v5.22: extended with original_signal; max_drawdown_pips can now be
+// JSON null (via maxDDStr) instead of always a possibly-misleading 0.0 ──
 void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
                     string direction, double entryPrice, double exitPrice,
                     double pnlPips, double pnlUsd, string outcome, bool wasFlipped,
                     string snapshotId, string predictionId,
                     string regime, string session, double lotSize,
-                    double maxDrawdownPips, datetime openedAt, long magicNumber)
+                    double maxDrawdownPips, datetime openedAt, long magicNumber,
+                    string originalSignal)
 {
    if(!TI_Enabled)
    {
@@ -898,6 +1033,10 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
       g_ti_reportTime   = TimeCurrent();
       return;
    }
+
+   // v5.22: -1 is the internal "never tracked" sentinel (position predates
+   // this EA run) — send JSON null instead of a misleading 0.0.
+   string maxDDStr = (maxDrawdownPips < 0) ? "null" : DoubleToString(maxDrawdownPips, 1);
 
    string json = StringFormat(
       "{\"ea_id\":\"%s\","
@@ -913,8 +1052,9 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
       "\"regime\":\"%s\","
       "\"session\":\"%s\","
       "\"lot_size\":%f,"
-      "\"max_drawdown_pips\":%f,"
-      "\"opened_at\":\"%s\"}",
+      "\"max_drawdown_pips\":%s,"
+      "\"opened_at\":\"%s\","
+      "\"original_signal\":\"%s\"}",
       strategy,
       strategy,
       magicNumber,
@@ -926,8 +1066,9 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
       regime,
       session,
       lotSize,
-      maxDrawdownPips,
-      TI_ISO8601(openedAt)
+      maxDDStr,
+      TI_ISO8601(openedAt),
+      originalSignal
    );
 
    string url     = TI_API_URL + "/trade/update";
@@ -959,17 +1100,20 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
             " | session=", session,
             " | opened=", openedAt > 0
                            ? TimeToString(openedAt, TIME_DATE|TIME_SECONDS)
-                           : "unknown");
+                           : "unknown",
+            " | maxDD=", (maxDrawdownPips < 0) ? "n/a" : (DoubleToString(maxDrawdownPips, 1) + "pips"),
+            " | orig=", originalSignal != "" ? originalSignal : "n/a");
    }
 }
 
 // ============================================================
 // OPEN TRADE — v5.17: stores openedAt alongside other meta
 // ============================================================
-bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
+bool OpenTrade(string signalID, string action, string originalAction, string strategy, double stopLoss)
 {
    if(g_todayTradeCount >= 2000){ g_lastError="Max 2000 trades reached"; return false; }
    if(action!="BUY" && action!="SELL"){ g_lastError="Invalid action"; return false; }
+   if(originalAction=="") originalAction = action;   // v5.22: safety net if a caller has none
 
    double lotSize    = CalcLotSize();
    bool   wasFlipped = false;
@@ -1095,13 +1239,18 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
       g_lastError = "";
 
       // ── v5.18: capture open timestamp AND open-time session ──
+      // v5.21 FIX: was TimeCurrent() (broker/server time). opened_at is
+      // stored and compared as UTC downstream, same as closed_at/created_at,
+      // and this EA already uses TimeGMT() everywhere else for that
+      // (GetCurrentSession(), CheckForNewSignals()) — this just makes
+      // opened_at consistent with them instead of running hours ahead.
       string openSess = GetCurrentSession();
       StoreMeta(openedTicket, snapshotId, predictionId, tiRegime, lotSize, strategy,
-                TimeCurrent(), openSess);
+                TimeGMT(), openSess, originalAction);
       if(DebugMode)
          Print("[TI] Stored meta for ticket #", openedTicket,
                " snap=", snapshotId, " pred=", predictionId,
-               " openedAt=", TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS),
+               " openedAt(GMT)=", TimeToString(TimeGMT(), TIME_DATE|TIME_SECONDS),
                " session=", openSess);
 
       Print("✅ #",openedTicket," | [",strategy,"] ",action,
@@ -1124,7 +1273,7 @@ bool OpenTrade(string signalID, string action, string strategy, double stopLoss)
 int OnInit()
 {
    Print("══════════════════════════════════════════════════════════");
-   Print("║ Unicore v5.17 INITIALIZED");
+   Print("║ Unicore v5.22 INITIALIZED");
    Print("║ Symbol: ",_Symbol," | Account: #",(long)AccountInfoInteger(ACCOUNT_LOGIN));
    Print("║ SL: ",DoubleToString(FixedSLPoints,1)," pts | NO TP");
    Print("║ Exit: MANUAL ONLY — signals stack, no auto-close");
@@ -1149,6 +1298,9 @@ int OnInit()
       Print("║   ea_id: per-strategy profiling ENABLED ✅");
       Print("║   snapshot_id + prediction_id round-trip: ENABLED ✅ (v5.16)");
       Print("║   opened_at round-trip: ENABLED ✅ (v5.17)");
+      Print("║   opened_at/lot_size/session sourced from MT5 deal history: v5.22 ✅");
+      Print("║   max_drawdown_pips live tracking: ENABLED ✅ (v5.22)");
+      Print("║   original_signal round-trip: ENABLED ✅ (v5.22)");
       Print("║   Add to WebRequest URLs: ", TI_API_URL);
       Print("║   IMPORTANT for XAUUSD: set MAX_SPREAD_PIPS=50 in your .env file");
    }
@@ -1178,7 +1330,10 @@ void OnTimer()
    CheckForNewSignals();
 }
 
-void OnTick(){}
+void OnTick()
+{
+   UpdateDrawdownTracking();   // v5.22
+}
 
 // ============================================================
 // TRADE CLOSE REPORTER — v5.17: also retrieves openedAt
@@ -1200,13 +1355,14 @@ void OnTradeTransaction(
    ulong dealTicket = trans.deal;
    if(!HistoryDealSelect(dealTicket)) return;
 
-   if(!IsUnicoreMagic((ulong)HistoryDealGetInteger(dealTicket, DEAL_MAGIC))) return;
+   ulong dealMagic = (ulong)HistoryDealGetInteger(dealTicket, DEAL_MAGIC);   // v5.22: reused below for magic_number
+   if(!IsUnicoreMagic(dealMagic)) return;
    if(HistoryDealGetInteger(dealTicket, DEAL_ENTRY)  != DEAL_ENTRY_OUT) return;
    if(HistoryDealGetString (dealTicket, DEAL_SYMBOL) != _Symbol)        return;
 
    // ── Extract strategy and flip status from comment ────────────────────────
    string comment    = HistoryDealGetString(dealTicket, DEAL_COMMENT);
-   string strategy   = "default";
+   string strategy   = "UNKNOWN";   // v5.22: renamed from "default" — means "couldn't decode", not a real strategy
    bool   wasFlipped = false;
 
    int startPos = StringFind(comment, "TF_");
@@ -1228,26 +1384,32 @@ void OnTradeTransaction(
    string   predictionId = "";
    string   metaRegime   = "";
    double   metaLotSize  = 0.0;
-   datetime metaOpenedAt = 0;   // v5.17
-   string   metaSession  = "";  // v5.18: open-time session
+   datetime metaOpenedAt = 0;    // v5.17
+   string   metaSession  = "";   // v5.18: open-time session
+   string   metaOriginalSignal  = "";   // v5.22
+   double   metaMaxDrawdownPips = -1.0; // v5.22: sentinel — -1 = "never tracked" (sent as JSON null)
 
    TicketMeta meta;
    if(GetMeta(posId, meta))
    {
-      snapshotId   = meta.snapshotId;
-      predictionId = meta.predictionId;
-      metaRegime   = meta.regime;
-      metaLotSize  = meta.lotSize;
-      metaOpenedAt = meta.openedAt;
-      metaSession  = meta.openSession;  // v5.18
-      if(meta.strategy != "default" && meta.strategy != "")
+      snapshotId          = meta.snapshotId;
+      predictionId        = meta.predictionId;
+      metaRegime          = meta.regime;
+      metaLotSize         = meta.lotSize;
+      metaOpenedAt        = meta.openedAt;
+      metaSession         = meta.openSession;      // v5.18
+      metaOriginalSignal  = meta.originalAction;    // v5.22
+      metaMaxDrawdownPips = meta.maxDrawdownPips;   // v5.22
+      if(meta.strategy != "UNKNOWN" && meta.strategy != "")
          strategy = meta.strategy;   // authoritative source
       RemoveMeta(posId);             // clean up — trade is closed
    }
    else
    {
       if(DebugMode)
-         Print("[TI] No meta found for position #", posId, " — snapshot_id/opened_at/session will be empty");
+         Print("[TI] No meta found for position #", posId,
+               " — snapshot_id/prediction_id/max_drawdown will be empty;"
+               " opened_at/lot_size/session recovered from MT5 deal history instead (v5.22)");
    }
    // ─────────────────────────────────────────────────────────────────────────
 
@@ -1255,10 +1417,19 @@ void OnTradeTransaction(
                     + HistoryDealGetDouble (dealTicket, DEAL_SWAP)
                     + HistoryDealGetDouble (dealTicket, DEAL_COMMISSION);
    double exitPrice = HistoryDealGetDouble (dealTicket, DEAL_PRICE);
-   long   dealType  = HistoryDealGetInteger(dealTicket, DEAL_TYPE);
-   string direction = (dealType == DEAL_TYPE_BUY) ? "BUY" : "SELL";
+   long   dealType  = HistoryDealGetInteger(dealTicket, DEAL_TYPE);   // type of the CLOSING deal only
 
-   double entryPrice = exitPrice;
+   // v5.21 FIX: direction used to be set straight from dealType above, i.e.
+   // from the deal that CLOSED the position. MT5 always closes a BUY with a
+   // SELL deal and a SELL with a BUY deal, so that reported the exact
+   // opposite of the real trade direction on every row sent to trade_history
+   // (pnl_pips, which is derived from direction below, inherited the same
+   // flip). Correct source is the DEAL_ENTRY_IN (opening) deal's type - the
+   // same deal entryPrice already comes from in the loop below.
+   double   entryPrice   = exitPrice;
+   long     openDealType = -1;
+   datetime trueOpenedAt = 0;    // v5.22: real open time, from the opening deal itself
+   double   trueLotSize  = 0.0;  // v5.22: real lot size, from the opening deal itself
    if(HistorySelectByPosition(posId))
    {
       for(int i = 0; i < HistoryDealsTotal(); i++)
@@ -1267,11 +1438,37 @@ void OnTradeTransaction(
          if(d == 0) continue;
          if(HistoryDealGetInteger(d, DEAL_ENTRY) == DEAL_ENTRY_IN)
          {
-            entryPrice = HistoryDealGetDouble(d, DEAL_PRICE);
+            entryPrice   = HistoryDealGetDouble(d, DEAL_PRICE);
+            openDealType = HistoryDealGetInteger(d, DEAL_TYPE);
+            trueOpenedAt = (datetime)HistoryDealGetInteger(d, DEAL_TIME);   // v5.22
+            trueLotSize  = HistoryDealGetDouble(d, DEAL_VOLUME);            // v5.22
             break;
          }
       }
    }
+   // v5.22: DEAL_TIME is broker/server time, exactly like the TimeCurrent()
+   // vs TimeGMT() mismatch the v5.21 fix above already deals with — convert
+   // it to GMT using the current server↔GMT offset so a history-recovered
+   // opened_at lines up with everything else stored/compared as UTC.
+   if(trueOpenedAt > 0)
+      trueOpenedAt = trueOpenedAt + ((long)TimeGMT() - (long)TimeCurrent());
+
+   // openDealType (the real opening deal) is the source of truth. Only if it
+   // couldn't be found at all do we fall back to inverting the closing deal's
+   // type — still better than the old bug, which used it un-inverted.
+   string direction = (openDealType >= 0)
+      ? ((openDealType == DEAL_TYPE_BUY) ? "BUY" : "SELL")
+      : ((dealType == DEAL_TYPE_BUY) ? "SELL" : "BUY");
+
+   // v5.22: MT5's own deal history is authoritative for opened_at/lot_size/
+   // session — it exists regardless of EA restarts, unlike g_ticketMeta[],
+   // which is empty for any position that was already open when this EA
+   // instance started (that's what produced 1970-01-01 timestamps and 0.00
+   // lot rows). Meta is now only a fallback if history lookup comes back empty.
+   datetime finalOpenedAt = (trueOpenedAt > 0) ? trueOpenedAt : metaOpenedAt;
+   double   finalLotSize  = (trueLotSize  > 0) ? trueLotSize  : metaLotSize;
+   string   finalSession  = (trueOpenedAt > 0) ? GetSessionForTime(trueOpenedAt)
+                           : (metaSession != "") ? metaSession : GetCurrentSession();
 
    double pnlPips = (direction == "BUY")
       ? (exitPrice - entryPrice) / (_Point * 10.0)
@@ -1284,14 +1481,9 @@ void OnTradeTransaction(
    if(profit >  0.01){ g_win_streak++;  g_loss_streak = 0; }
    if(profit < -0.01){ g_loss_streak++; g_win_streak  = 0; }
 
-   // v5.18: use session captured at open time; fall back to close-time only if meta was lost
-   string session = (metaSession != "") ? metaSession : GetCurrentSession();
-
-   // max_drawdown_pips: not tracked intra-trade by the EA, send 0 as placeholder
-   double maxDrawdownPips = 0.0;
-
-   // v5.18: resolve magic number from strategy name for the DB record
-   long magicNumber = (long)GetMagicForStrategy(strategy);
+   // v5.22: magic number read straight from the deal itself — always
+   // correct, doesn't depend on strategy having decoded successfully
+   long magicNumber = (long)dealMagic;
 
    Print("[TI] Trade closed: #", dealTicket,
          " | [", strategy, "]",
@@ -1302,14 +1494,15 @@ void OnTradeTransaction(
          " | Flipped: ", wasFlipped ? "YES" : "NO",
          " | snap=", snapshotId != "" ? snapshotId : "none",
          " | pred=", predictionId != "" ? predictionId : "none",
-         " | opened=", metaOpenedAt > 0
-                        ? TimeToString(metaOpenedAt, TIME_DATE|TIME_SECONDS)
+         " | opened=", finalOpenedAt > 0
+                        ? TimeToString(finalOpenedAt, TIME_DATE|TIME_SECONDS)
                         : "unknown");
 
    TI_ReportTrade(dealTicket, _Symbol, strategy, direction,
                   entryPrice, exitPrice, pnlPips, profit, outcome, wasFlipped,
-                  snapshotId, predictionId, metaRegime, session,
-                  metaLotSize, maxDrawdownPips, metaOpenedAt, magicNumber);  // v5.18
+                  snapshotId, predictionId, metaRegime, finalSession,
+                  finalLotSize, metaMaxDrawdownPips, finalOpenedAt, magicNumber,
+                  metaOriginalSignal);  // v5.22
 }
 
 // ============================================================
@@ -1465,7 +1658,8 @@ void ProcessSignalsArray(string json)
       Print("║ 🟢 MSV PRIMARY [",msvSigs[i].strategy,"] ",msvSigs[i].action," — executing now");
       if(AutoTrade)
       {
-         OpenTrade(msvSigs[i].id, msvSigs[i].action, msvSigs[i].strategy, msvSigs[i].sl);
+         OpenTrade(msvSigs[i].id, msvSigs[i].action, msvSigs[i].original_action,
+                   msvSigs[i].strategy, msvSigs[i].sl);
          MarkProcessed(msvSigs[i].id); SaveProcessedIDs();
          g_lastSignalStatus = (g_lastError=="")
             ? "✅ ["+msvSigs[i].strategy+"] "+msvSigs[i].action+" (primary)"
@@ -1514,8 +1708,8 @@ void ProcessSignalsArray(string json)
          g_lastError          = "";
          if(AutoTrade)
          {
-            RouteSignal(nonMsvSigs[i].id, nonMsvSigs[i].action, nonMsvSigs[i].strategy,
-                        nonMsvSigs[i].entry, nonMsvSigs[i].sl);
+            RouteSignal(nonMsvSigs[i].id, nonMsvSigs[i].action, nonMsvSigs[i].original_action,
+                        nonMsvSigs[i].strategy, nonMsvSigs[i].entry, nonMsvSigs[i].sl);
             MarkProcessed(nonMsvSigs[i].id); SaveProcessedIDs();
             g_lastSignalStatus = (g_lastError=="")
                ? "✅ ["+nonMsvSigs[i].strategy+"] "+nonMsvSigs[i].action+" executed"
@@ -1718,7 +1912,7 @@ void UpdateChartDisplay()
    string d = "";
 
    d += TOP;
-   d += "║   UNICORE v5.19 XAUUSD     " + COL + "  MSV=PRIMARY  Manual Exit  ║\n";
+   d += "║   UNICORE v5.22 XAUUSD     " + COL + "  MSV=PRIMARY  Manual Exit  ║\n";
    d += SEP;
 
    d += "║ STATUS: " + g_lastSignalStatus + ENDF;
