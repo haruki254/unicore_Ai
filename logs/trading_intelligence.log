@@ -2369,3 +2369,550 @@
 2026-07-06 15:12:55.846 | INFO     | monitoring.logger:info:70 - Loaded trader_ai from models_saved\trader_ai.joblib
 2026-07-06 15:12:56.064 | INFO     | monitoring.logger:info:70 - Loaded risk_manager from models_saved\risk_manager.joblib
 2026-07-06 15:12:56.067 | INFO     | monitoring.logger:info:70 - System ready | trader=✓ risk=✓ memory=0
+2026-07-06 15:58:58.338 | INFO     | monitoring.logger:info:70 - Memory loaded: 0 records
+2026-07-06 15:59:01.517 | INFO     | monitoring.logger:info:70 - Supabase connected
+2026-07-06 15:59:02.403 | INFO     | monitoring.logger:info:70 - Starting Trading Intelligence System...
+2026-07-06 15:59:02.670 | INFO     | monitoring.logger:info:70 - Loaded trader_ai from models_saved\trader_ai.joblib
+2026-07-06 15:59:02.830 | INFO     | monitoring.logger:info:70 - Loaded risk_manager from models_saved\risk_manager.joblib
+2026-07-06 15:59:02.832 | INFO     | monitoring.logger:info:70 - System ready | trader=✓ risk=✓ memory=0
+2026-07-06 16:30:05.377 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 16:30:08.873 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (18%)
+2026-07-06 16:30:09.885 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-06 16:30:10.233 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 16:30:10.250 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 16:30:10.252 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:29% | → BLOCK | 1423ms
+2026-07-06 16:30:10.260 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:29% | → BLOCK | 1423ms
+2026-07-06 16:30:36.092 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 16:30:36.596 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (18%)
+2026-07-06 16:30:36.808 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-06 16:30:37.017 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 16:30:37.019 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 16:30:37.020 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:29% | → BLOCK | 424ms
+2026-07-06 16:30:37.046 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:29% | → BLOCK | 424ms
+2026-07-06 16:34:15.410 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 16:34:15.675 | INFO     | monitoring.logger:info:70 - CLOSE #88620058 | XAUUSD | ✅ WIN | +25.2 pips | 0min
+2026-07-06 16:34:16.585 | DEBUG    | monitoring.logger:debug:65 - Memory: 1 records
+2026-07-06 16:56:46.216 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 16:56:46.681 | INFO     | monitoring.logger:info:70 - CLOSE #88629265 | XAUUSD | ✅ WIN | +25.4 pips | 0min
+2026-07-06 16:56:47.406 | DEBUG    | monitoring.logger:debug:65 - Memory: 2 records
+2026-07-06 17:00:03.146 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:00:04.258 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-06 17:00:04.407 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=74% SELL=26% → BUY (conf=24%)
+2026-07-06 17:00:04.523 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.28']
+2026-07-06 17:00:04.524 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=high_volatility[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:00:04.528 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:74% Sell:26% | Risk:28% | → BLOCK | 269ms
+2026-07-06 17:00:04.528 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:74% Sell:26% | Risk:28% | → BLOCK | 269ms
+2026-07-06 17:00:15.162 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:00:15.496 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-06 17:00:15.603 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=74% SELL=26% → BUY (conf=24%)
+2026-07-06 17:00:15.718 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.28']
+2026-07-06 17:00:15.719 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:00:15.720 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:74% Sell:26% | Risk:28% | → BLOCK | 223ms
+2026-07-06 17:00:15.721 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:74% Sell:26% | Risk:28% | → BLOCK | 223ms
+2026-07-06 17:07:43.761 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 17:07:44.140 | INFO     | monitoring.logger:info:70 - CLOSE #88633842 | XAUUSD | ✅ WIN | +32.5 pips | 0min
+2026-07-06 17:07:45.293 | DEBUG    | monitoring.logger:debug:65 - Memory: 3 records
+2026-07-06 17:30:00.477 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:30:01.422 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (22%)
+2026-07-06 17:30:01.660 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=75% SELL=25% → BUY (conf=25%)
+2026-07-06 17:30:01.768 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 17:30:01.773 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:30:01.774 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 352ms
+2026-07-06 17:30:01.776 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 352ms
+2026-07-06 17:30:04.161 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:30:04.458 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (22%)
+2026-07-06 17:30:04.599 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=75% SELL=25% → BUY (conf=25%)
+2026-07-06 17:30:04.706 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 17:30:04.707 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:30:04.708 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 250ms
+2026-07-06 17:30:04.709 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 250ms
+2026-07-06 17:30:24.101 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:30:24.437 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (22%)
+2026-07-06 17:30:24.580 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=75% SELL=25% → BUY (conf=25%)
+2026-07-06 17:30:24.694 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 17:30:24.698 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:30:24.700 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 263ms
+2026-07-06 17:30:24.701 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:75% Sell:25% | Risk:29% | → BLOCK | 263ms
+2026-07-06 17:43:58.946 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 17:43:59.459 | INFO     | monitoring.logger:info:70 - CLOSE #88645475 | XAUUSD | ✅ WIN | +18.8 pips | 0min
+2026-07-06 17:44:00.425 | DEBUG    | monitoring.logger:debug:65 - Memory: 4 records
+2026-07-06 17:44:01.216 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 17:44:01.524 | INFO     | monitoring.logger:info:70 - CLOSE #88645476 | XAUUSD | ✅ WIN | +20.5 pips | 0min
+2026-07-06 17:44:02.476 | DEBUG    | monitoring.logger:debug:65 - Memory: 5 records
+2026-07-06 17:44:02.780 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 17:44:03.084 | INFO     | monitoring.logger:info:70 - CLOSE #88645477 | XAUUSD | ✅ WIN | +35.3 pips | 0min
+2026-07-06 17:44:04.347 | DEBUG    | monitoring.logger:debug:65 - Memory: 6 records
+2026-07-06 17:44:09.679 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 17:44:10.222 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (22%)
+2026-07-06 17:44:10.339 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=74% SELL=26% → BUY (conf=24%)
+2026-07-06 17:44:10.448 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 17:44:10.449 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_LL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 17:44:10.452 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:74% Sell:26% | Risk:29% | → BLOCK | 229ms
+2026-07-06 17:44:10.454 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:74% Sell:26% | Risk:29% | → BLOCK | 229ms
+2026-07-06 17:44:13.012 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 17:44:13.344 | INFO     | monitoring.logger:info:70 - CLOSE #88645855 | XAUUSD | ❌ LOSS | -100.4 pips | 0min
+2026-07-06 17:44:14.353 | DEBUG    | monitoring.logger:debug:65 - Memory: 7 records
+2026-07-06 18:00:00.099 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 18:00:01.115 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (26%)
+2026-07-06 18:00:01.255 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=70% SELL=30% → BUY (conf=20%)
+2026-07-06 18:00:01.445 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.29']
+2026-07-06 18:00:01.448 | INFO     | monitoring.logger:info:70 - [LIQ] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 18:00:01.449 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:70% Sell:30% | Risk:29% | → BLOCK | 333ms
+2026-07-06 18:00:01.450 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:70% Sell:30% | Risk:29% | → BLOCK | 333ms
+2026-07-06 18:04:30.593 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 18:04:31.132 | INFO     | monitoring.logger:info:70 - CLOSE #88651334 | XAUUSD | ✅ WIN | +39.5 pips | 0min
+2026-07-06 18:04:32.600 | DEBUG    | monitoring.logger:debug:65 - Memory: 8 records
+2026-07-06 18:04:33.508 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 18:04:33.832 | INFO     | monitoring.logger:info:70 - CLOSE #88651347 | XAUUSD | ✅ WIN | +120.3 pips | 0min
+2026-07-06 18:04:34.813 | DEBUG    | monitoring.logger:debug:65 - Memory: 9 records
+2026-07-06 18:29:35.312 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 18:29:35.814 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (25%)
+2026-07-06 18:29:35.956 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-06 18:29:36.064 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['low_quality_score:0.32']
+2026-07-06 18:29:36.068 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_LH] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=overlap_london_ny[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 18:29:36.069 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:32% | → BLOCK | 255ms
+2026-07-06 18:29:36.070 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:32% | → BLOCK | 255ms
+2026-07-06 18:48:24.723 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 18:48:25.492 | INFO     | monitoring.logger:info:70 - CLOSE #88660622 | XAUUSD | ✅ WIN | +31.7 pips | 0min
+2026-07-06 18:48:26.492 | DEBUG    | monitoring.logger:debug:65 - Memory: 10 records
+2026-07-06 19:00:01.085 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 19:00:01.544 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → low_volatility (17%)
+2026-07-06 19:00:01.991 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 10 vectors
+2026-07-06 19:00:02.090 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 10 similar | WR=90% | avgPnL=+24.9 pips
+2026-07-06 19:00:02.236 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=20% SELL=80% → SELL (conf=30%)
+2026-07-06 19:00:02.343 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-06 19:00:02.344 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=low_volatility[BUY:MED/SELL:MED], session=new_york[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 19:00:02.345 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:20% Sell:80% | Risk:60% | → BLOCK | 801ms
+2026-07-06 19:00:02.346 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:20% Sell:80% | Risk:60% | → BLOCK | 801ms
+2026-07-06 19:30:01.308 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 19:30:02.284 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → low_volatility (20%)
+2026-07-06 19:30:02.300 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 10 similar | WR=90% | avgPnL=+24.9 pips
+2026-07-06 19:30:02.429 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=27% SELL=73% → SELL (conf=23%)
+2026-07-06 19:30:02.542 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=63%
+2026-07-06 19:30:02.543 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=low_volatility[BUY:MED/SELL:MED], session=new_york[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 19:30:02.544 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:63% | → ALLOW_SELL | 260ms
+2026-07-06 19:30:02.546 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:63% | → ALLOW_SELL | 260ms
+2026-07-06 19:37:06.951 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 19:37:07.490 | INFO     | monitoring.logger:info:70 - CLOSE #88670768 | XAUUSD | ✅ WIN | +12.1 pips | 0min
+2026-07-06 19:37:08.547 | DEBUG    | monitoring.logger:debug:65 - Memory: 11 records
+2026-07-06 19:50:29.805 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 19:50:30.348 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (21%)
+2026-07-06 19:50:30.659 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 11 vectors
+2026-07-06 19:50:30.736 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=91% | avgPnL=+23.7 pips
+2026-07-06 19:50:30.917 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=25% SELL=75% → SELL (conf=25%)
+2026-07-06 19:50:31.165 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-06 19:50:31.168 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_HH] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=new_york[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 19:50:31.231 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:25% Sell:75% | Risk:61% | → ALLOW_SELL | 883ms
+2026-07-06 19:50:31.235 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:25% Sell:75% | Risk:61% | → ALLOW_SELL | 883ms
+2026-07-06 19:54:18.427 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 19:54:18.954 | INFO     | monitoring.logger:info:70 - CLOSE #88674153 | XAUUSD | ❌ LOSS | -100.0 pips | 0min
+2026-07-06 19:54:20.274 | DEBUG    | monitoring.logger:debug:65 - Memory: 12 records
+2026-07-06 22:30:08.072 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-06 22:30:09.171 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (25%)
+2026-07-06 22:30:09.272 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 12 vectors
+2026-07-06 22:30:09.322 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 12 similar | WR=83% | avgPnL=+13.4 pips
+2026-07-06 22:30:09.603 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=28% SELL=72% → SELL (conf=22%)
+2026-07-06 22:30:09.794 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=63%
+2026-07-06 22:30:09.797 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=new_york[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-06 22:30:09.799 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:28% Sell:72% | Risk:63% | → ALLOW_SELL | 653ms
+2026-07-06 22:30:09.804 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:28% Sell:72% | Risk:63% | → ALLOW_SELL | 653ms
+2026-07-06 23:09:16.419 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-06 23:09:17.044 | INFO     | monitoring.logger:info:70 - CLOSE #88710949 | XAUUSD | ✅ WIN | +5.1 pips | 0min
+2026-07-06 23:09:18.347 | DEBUG    | monitoring.logger:debug:65 - Memory: 13 records
+2026-07-07 01:00:12.509 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 01:00:14.313 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (28%)
+2026-07-07 01:00:14.471 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 13 vectors
+2026-07-07 01:00:14.753 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 13 similar | WR=85% | avgPnL=+12.8 pips
+2026-07-07 01:00:15.387 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=21% SELL=79% → SELL (conf=29%)
+2026-07-07 01:00:15.676 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 01:00:15.774 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 01:00:15.784 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:21% Sell:79% | Risk:60% | → ALLOW_SELL | 1469ms
+2026-07-07 01:00:15.800 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:21% Sell:79% | Risk:60% | → ALLOW_SELL | 1469ms
+2026-07-07 01:02:36.494 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 01:02:37.190 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (29%)
+2026-07-07 01:02:37.310 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 13 similar | WR=85% | avgPnL=+12.8 pips
+2026-07-07 01:02:37.561 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=21% SELL=79% → SELL (conf=29%)
+2026-07-07 01:02:37.723 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 01:02:37.738 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_HH] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 01:02:37.740 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:21% Sell:79% | Risk:59% | → ALLOW_SELL | 549ms
+2026-07-07 01:02:37.743 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:21% Sell:79% | Risk:59% | → ALLOW_SELL | 549ms
+2026-07-07 01:25:09.700 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 01:25:10.657 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (27%)
+2026-07-07 01:25:10.690 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 13 similar | WR=85% | avgPnL=+12.8 pips
+2026-07-07 01:25:11.139 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=22% SELL=78% → SELL (conf=28%)
+2026-07-07 01:25:11.305 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 01:25:11.307 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_LH] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 01:25:11.308 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:60% | → ALLOW_SELL | 651ms
+2026-07-07 01:25:11.311 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:60% | → ALLOW_SELL | 651ms
+2026-07-07 01:30:03.856 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 01:30:04.817 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (24%)
+2026-07-07 01:30:04.835 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 13 similar | WR=85% | avgPnL=+12.8 pips
+2026-07-07 01:30:04.989 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=22% SELL=78% → SELL (conf=28%)
+2026-07-07 01:30:05.217 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 01:30:05.218 | INFO     | monitoring.logger:info:70 - [LIQ] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 01:30:05.219 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:58% | → ALLOW_SELL | 402ms
+2026-07-07 01:30:05.221 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:58% | → ALLOW_SELL | 402ms
+2026-07-07 01:33:57.461 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 01:33:57.943 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (24%)
+2026-07-07 01:33:57.962 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 13 similar | WR=85% | avgPnL=+12.8 pips
+2026-07-07 01:33:58.109 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=22% SELL=78% → SELL (conf=28%)
+2026-07-07 01:33:58.231 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 01:33:58.236 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_HH] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 01:33:58.262 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:58% | → ALLOW_SELL | 320ms
+2026-07-07 01:33:58.288 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:22% Sell:78% | Risk:58% | → ALLOW_SELL | 320ms
+2026-07-07 01:51:09.151 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 01:51:09.959 | INFO     | monitoring.logger:info:70 - CLOSE #88719049 | XAUUSD | ✅ WIN | +22.2 pips | 0min
+2026-07-07 01:51:11.108 | DEBUG    | monitoring.logger:debug:65 - Memory: 14 records
+2026-07-07 01:51:12.323 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 01:51:12.717 | INFO     | monitoring.logger:info:70 - CLOSE #88719050 | XAUUSD | ✅ WIN | +6.7 pips | 0min
+2026-07-07 01:51:13.741 | DEBUG    | monitoring.logger:debug:65 - Memory: 15 records
+2026-07-07 01:51:14.094 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 01:51:14.407 | INFO     | monitoring.logger:info:70 - CLOSE #88719051 | XAUUSD | ✅ WIN | +18.3 pips | 0min
+2026-07-07 01:51:15.343 | DEBUG    | monitoring.logger:debug:65 - Memory: 16 records
+2026-07-07 02:00:06.362 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 02:00:07.083 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (18%)
+2026-07-07 02:00:07.119 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 16 vectors
+2026-07-07 02:00:07.160 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 16 similar | WR=88% | avgPnL=+13.3 pips
+2026-07-07 02:00:07.349 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=23% SELL=77% → SELL (conf=27%)
+2026-07-07 02:00:07.460 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 02:00:07.462 | INFO     | monitoring.logger:info:70 - [LIQ] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 02:00:07.463 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:23% Sell:77% | Risk:60% | → ALLOW_SELL | 380ms
+2026-07-07 02:00:07.474 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:23% Sell:77% | Risk:60% | → ALLOW_SELL | 380ms
+2026-07-07 02:00:37.020 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 02:00:37.464 | INFO     | monitoring.logger:info:70 - CLOSE #88720511 | XAUUSD | ✅ WIN | +1.1 pips | 0min
+2026-07-07 02:00:38.461 | DEBUG    | monitoring.logger:debug:65 - Memory: 17 records
+2026-07-07 02:00:38.764 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 02:00:39.074 | INFO     | monitoring.logger:info:70 - CLOSE #88720512 | XAUUSD | ✅ WIN | +7.1 pips | 0min
+2026-07-07 02:00:40.044 | DEBUG    | monitoring.logger:debug:65 - Memory: 18 records
+2026-07-07 02:30:06.535 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 02:30:07.127 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (20%)
+2026-07-07 02:30:07.251 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 18 vectors
+2026-07-07 02:30:07.257 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 18 similar | WR=89% | avgPnL=+12.3 pips
+2026-07-07 02:30:07.412 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=26% SELL=74% → SELL (conf=24%)
+2026-07-07 02:30:07.599 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 02:30:07.601 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 02:30:07.602 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:65% | → ALLOW_SELL | 475ms
+2026-07-07 02:30:07.603 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:65% | → ALLOW_SELL | 475ms
+2026-07-07 02:30:10.011 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 02:30:10.429 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bull_trend (20%)
+2026-07-07 02:30:10.433 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 18 similar | WR=89% | avgPnL=+12.3 pips
+2026-07-07 02:30:10.661 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=26% SELL=74% → SELL (conf=24%)
+2026-07-07 02:30:10.780 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 02:30:10.783 | INFO     | monitoring.logger:info:70 - [FVG] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bull_trend[BUY:MED/SELL:MED], session=off_hours[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 02:30:10.784 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:65% | → ALLOW_SELL | 354ms
+2026-07-07 02:30:10.785 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:65% | → ALLOW_SELL | 354ms
+2026-07-07 02:40:22.803 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 02:40:23.376 | INFO     | monitoring.logger:info:70 - CLOSE #88723738 | XAUUSD | ❌ LOSS | -0.8 pips | 0min
+2026-07-07 02:40:24.334 | DEBUG    | monitoring.logger:debug:65 - Memory: 19 records
+2026-07-07 02:40:24.669 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 02:40:24.988 | INFO     | monitoring.logger:info:70 - CLOSE #88723739 | XAUUSD | ✅ WIN | +5.5 pips | 0min
+2026-07-07 02:40:25.936 | DEBUG    | monitoring.logger:debug:65 - Memory: 20 records
+2026-07-07 03:00:03.589 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 03:00:04.250 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 03:00:08.262 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 20 vectors
+2026-07-07 03:00:09.149 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 03:00:09.521 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=27% SELL=73% → SELL (conf=23%)
+2026-07-07 03:00:09.679 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 03:00:09.680 | INFO     | monitoring.logger:info:70 - [UTBOT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 03:00:09.682 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 5431ms
+2026-07-07 03:00:09.682 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 5431ms
+2026-07-07 03:00:12.581 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 03:00:12.790 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 03:00:12.793 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 03:00:12.904 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=27% SELL=73% → SELL (conf=23%)
+2026-07-07 03:00:13.020 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 03:00:13.021 | INFO     | monitoring.logger:info:70 - [OB] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 03:00:13.025 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 234ms
+2026-07-07 03:00:13.026 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 234ms
+2026-07-07 03:00:14.539 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 03:00:14.745 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 03:00:14.746 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 03:00:14.852 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=27% SELL=73% → SELL (conf=23%)
+2026-07-07 03:00:14.959 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 03:00:14.960 | INFO     | monitoring.logger:info:70 - [SMARTENTRY] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 03:00:14.961 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 216ms
+2026-07-07 03:00:14.962 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 216ms
+2026-07-07 03:00:16.696 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 03:00:17.091 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 03:00:17.093 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 03:00:17.208 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=27% SELL=73% → SELL (conf=23%)
+2026-07-07 03:00:17.319 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 03:00:17.391 | INFO     | monitoring.logger:info:70 - [FVG] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 03:00:17.392 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 302ms
+2026-07-07 03:00:17.397 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:27% Sell:73% | Risk:69% | → ALLOW_SELL | 302ms
+2026-07-07 03:12:08.973 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 03:12:09.336 | INFO     | monitoring.logger:info:70 - CLOSE #88727312 | XAUUSD | ✅ WIN | +0.8 pips | 0min
+2026-07-07 03:12:10.275 | DEBUG    | monitoring.logger:debug:65 - Memory: 21 records
+2026-07-07 03:12:11.135 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 03:12:11.533 | INFO     | monitoring.logger:info:70 - CLOSE #88727346 | XAUUSD | ✅ WIN | +13.4 pips | 0min
+2026-07-07 03:12:12.488 | DEBUG    | monitoring.logger:debug:65 - Memory: 22 records
+2026-07-07 03:12:12.870 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 03:12:13.072 | INFO     | monitoring.logger:info:70 - CLOSE #88727350 | XAUUSD | ✅ WIN | +11.7 pips | 0min
+2026-07-07 03:12:14.393 | DEBUG    | monitoring.logger:debug:65 - Memory: 23 records
+2026-07-07 03:12:15.716 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 03:12:15.983 | INFO     | monitoring.logger:info:70 - CLOSE #88727356 | XAUUSD | ✅ WIN | +11.4 pips | 0min
+2026-07-07 03:12:16.937 | DEBUG    | monitoring.logger:debug:65 - Memory: 24 records
+2026-07-07 03:30:04.010 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 03:30:04.647 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (18%)
+2026-07-07 03:30:04.673 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 24 vectors
+2026-07-07 03:30:04.679 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 03:30:04.816 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=26% SELL=74% → SELL (conf=24%)
+2026-07-07 03:30:04.971 | WARNING  | monitoring.logger:warning:75 - BLOCKED | XAUUSD | ['dead_zone_hours']
+2026-07-07 03:30:04.972 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 03:30:04.974 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:68% | → ALLOW_SELL | 327ms
+2026-07-07 03:30:04.975 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:26% Sell:74% | Risk:68% | → ALLOW_SELL | 327ms
+2026-07-07 03:59:54.871 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 03:59:55.326 | INFO     | monitoring.logger:info:70 - CLOSE #88733217 | XAUUSD | ✅ WIN | +118.7 pips | 0min
+2026-07-07 04:00:01.272 | DEBUG    | monitoring.logger:debug:65 - Memory: 25 records
+2026-07-07 04:00:13.968 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:00:14.564 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 04:00:14.589 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 25 vectors
+2026-07-07 04:00:14.606 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:00:14.726 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=71% SELL=29% → BUY (conf=21%)
+2026-07-07 04:00:14.840 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 04:00:14.845 | INFO     | monitoring.logger:info:70 - [OB] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:00:14.847 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:71% Sell:29% | Risk:60% | → BLOCK | 283ms
+2026-07-07 04:00:14.848 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:71% Sell:29% | Risk:60% | → BLOCK | 283ms
+2026-07-07 04:00:16.550 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:00:16.797 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (23%)
+2026-07-07 04:00:16.799 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:00:17.119 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=71% SELL=29% → BUY (conf=21%)
+2026-07-07 04:00:17.346 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 04:00:17.347 | INFO     | monitoring.logger:info:70 - [FVG] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:00:17.347 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:71% Sell:29% | Risk:60% | → BLOCK | 550ms
+2026-07-07 04:00:17.348 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:71% Sell:29% | Risk:60% | → BLOCK | 550ms
+2026-07-07 04:07:32.873 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:07:33.214 | INFO     | monitoring.logger:info:70 - CLOSE #88734540 | XAUUSD | ✅ WIN | +27.4 pips | 0min
+2026-07-07 04:07:33.812 | DEBUG    | monitoring.logger:debug:65 - Memory: 26 records
+2026-07-07 04:07:34.005 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:07:34.197 | INFO     | monitoring.logger:info:70 - CLOSE #88734550 | XAUUSD | ✅ WIN | +35.9 pips | 0min
+2026-07-07 04:07:34.774 | DEBUG    | monitoring.logger:debug:65 - Memory: 27 records
+2026-07-07 04:30:03.137 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:30:03.758 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:30:03.818 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 27 vectors
+2026-07-07 04:30:03.819 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:30:03.960 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:30:04.082 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-07 04:30:04.110 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:30:04.111 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 353ms
+2026-07-07 04:30:04.112 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 353ms
+2026-07-07 04:30:05.946 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:30:06.158 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:30:06.159 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:30:06.364 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:30:06.493 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-07 04:30:06.494 | INFO     | monitoring.logger:info:70 - [SNIPER] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:30:06.495 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 337ms
+2026-07-07 04:30:06.496 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 337ms
+2026-07-07 04:30:08.128 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:30:08.320 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:30:08.322 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:30:08.424 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:30:08.534 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-07 04:30:08.535 | INFO     | monitoring.logger:info:70 - [LVN] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:30:08.536 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:61% | → ALLOW_BUY | 215ms
+2026-07-07 04:30:08.537 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:61% | → ALLOW_BUY | 215ms
+2026-07-07 04:30:09.828 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:30:10.595 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:30:10.596 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:30:10.740 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:30:10.847 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-07 04:30:10.847 | INFO     | monitoring.logger:info:70 - [OB] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:30:10.848 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 252ms
+2026-07-07 04:30:10.849 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 252ms
+2026-07-07 04:30:12.646 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:30:12.843 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:30:12.844 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:30:13.005 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:30:13.179 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=61%
+2026-07-07 04:30:13.180 | INFO     | monitoring.logger:info:70 - [FVG] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:30:13.181 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 337ms
+2026-07-07 04:30:13.181 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:73% Sell:27% | Risk:61% | → BLOCK | 337ms
+2026-07-07 04:31:03.027 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 04:31:03.620 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → high_volatility (24%)
+2026-07-07 04:31:03.624 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 04:31:03.758 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 04:31:03.878 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 04:31:03.891 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=high_volatility[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 04:31:03.891 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:60% | → ALLOW_BUY | 271ms
+2026-07-07 04:31:03.892 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:60% | → ALLOW_BUY | 271ms
+2026-07-07 04:44:33.128 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:44:33.525 | INFO     | monitoring.logger:info:70 - CLOSE #88738849 | XAUUSD | ✅ WIN | +33.9 pips | 0min
+2026-07-07 04:44:34.173 | DEBUG    | monitoring.logger:debug:65 - Memory: 28 records
+2026-07-07 04:44:34.929 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:44:35.173 | INFO     | monitoring.logger:info:70 - CLOSE #88738850 | XAUUSD | ✅ WIN | +70.6 pips | 0min
+2026-07-07 04:44:35.772 | DEBUG    | monitoring.logger:debug:65 - Memory: 29 records
+2026-07-07 04:44:35.967 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:44:36.170 | INFO     | monitoring.logger:info:70 - CLOSE #88738851 | XAUUSD | ❌ LOSS | -77.7 pips | 0min
+2026-07-07 04:44:36.763 | DEBUG    | monitoring.logger:debug:65 - Memory: 30 records
+2026-07-07 04:45:02.108 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:45:02.301 | INFO     | monitoring.logger:info:70 - CLOSE #88738878 | XAUUSD | ❌ LOSS | -100.2 pips | 0min
+2026-07-07 04:45:03.708 | DEBUG    | monitoring.logger:debug:65 - Memory: 31 records
+2026-07-07 04:45:44.631 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:45:44.832 | INFO     | monitoring.logger:info:70 - CLOSE #88738921 | XAUUSD | ❌ LOSS | -98.4 pips | 0min
+2026-07-07 04:45:45.478 | DEBUG    | monitoring.logger:debug:65 - Memory: 32 records
+2026-07-07 04:45:45.693 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 04:45:45.915 | INFO     | monitoring.logger:info:70 - CLOSE #88738924 | XAUUSD | ❌ LOSS | -99.4 pips | 0min
+2026-07-07 04:45:46.530 | DEBUG    | monitoring.logger:debug:65 - Memory: 33 records
+2026-07-07 05:00:02.071 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 05:00:02.714 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (21%)
+2026-07-07 05:00:02.835 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 33 vectors
+2026-07-07 05:00:02.971 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 05:00:03.159 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 05:00:03.318 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=64%
+2026-07-07 05:00:03.404 | INFO     | monitoring.logger:info:70 - [UTBOT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 05:00:03.487 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 772ms
+2026-07-07 05:00:03.588 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 772ms
+2026-07-07 05:00:05.641 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 05:00:05.842 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (21%)
+2026-07-07 05:00:05.845 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 05:00:05.957 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 05:00:06.069 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=64%
+2026-07-07 05:00:06.070 | INFO     | monitoring.logger:info:70 - [OB] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 05:00:06.071 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 228ms
+2026-07-07 05:00:06.072 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 228ms
+2026-07-07 05:00:07.634 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 05:00:07.833 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (21%)
+2026-07-07 05:00:07.836 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 05:00:07.978 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 05:00:08.125 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=64%
+2026-07-07 05:00:08.132 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 05:00:08.134 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 300ms
+2026-07-07 05:00:08.135 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:64% | → ALLOW_BUY | 300ms
+2026-07-07 05:25:15.409 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 05:25:15.870 | INFO     | monitoring.logger:info:70 - CLOSE #88741301 | XAUUSD | ✅ WIN | +20.4 pips | 0min
+2026-07-07 05:25:16.602 | DEBUG    | monitoring.logger:debug:65 - Memory: 34 records
+2026-07-07 05:25:16.880 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 05:25:17.103 | INFO     | monitoring.logger:info:70 - CLOSE #88741302 | XAUUSD | ✅ WIN | +23.7 pips | 0min
+2026-07-07 05:25:17.779 | DEBUG    | monitoring.logger:debug:65 - Memory: 35 records
+2026-07-07 05:25:19.329 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 05:25:19.567 | INFO     | monitoring.logger:info:70 - CLOSE #88741303 | XAUUSD | ✅ WIN | +22.8 pips | 0min
+2026-07-07 05:25:20.232 | DEBUG    | monitoring.logger:debug:65 - Memory: 36 records
+2026-07-07 06:00:02.377 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:00:02.994 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:00:03.038 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 36 vectors
+2026-07-07 06:00:03.082 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:00:03.228 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 06:00:03.319 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 06:00:03.322 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:00:03.323 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:69% Sell:31% | Risk:60% | → BLOCK | 329ms
+2026-07-07 06:00:03.325 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:69% Sell:31% | Risk:60% | → BLOCK | 329ms
+2026-07-07 06:00:04.903 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:00:05.105 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:00:05.107 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:00:05.205 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 06:00:05.296 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 06:00:05.297 | INFO     | monitoring.logger:info:70 - [FVG] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:00:05.298 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:69% Sell:31% | Risk:60% | → BLOCK | 192ms
+2026-07-07 06:00:05.299 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:69% Sell:31% | Risk:60% | → BLOCK | 192ms
+2026-07-07 06:00:14.381 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:00:15.045 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:00:15.164 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:00:15.552 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 06:00:15.687 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 06:00:15.688 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:00:15.689 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:60% | → ALLOW_BUY | 643ms
+2026-07-07 06:00:15.690 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:60% | → ALLOW_BUY | 643ms
+2026-07-07 06:24:03.652 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:24:03.956 | INFO     | monitoring.logger:info:70 - CLOSE #88745303 | XAUUSD | ✅ WIN | +17.4 pips | 0min
+2026-07-07 06:24:04.832 | DEBUG    | monitoring.logger:debug:65 - Memory: 37 records
+2026-07-07 06:24:05.059 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:24:05.285 | INFO     | monitoring.logger:info:70 - CLOSE #88745304 | XAUUSD | ✅ WIN | +20.4 pips | 0min
+2026-07-07 06:24:06.045 | DEBUG    | monitoring.logger:debug:65 - Memory: 38 records
+2026-07-07 06:25:23.655 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:25:23.912 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (20%)
+2026-07-07 06:25:23.955 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 38 vectors
+2026-07-07 06:25:23.957 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:25:24.070 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=73% SELL=27% → BUY (conf=23%)
+2026-07-07 06:25:24.165 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 06:25:24.166 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_HL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:25:24.167 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:60% | → ALLOW_BUY | 255ms
+2026-07-07 06:25:24.168 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:73% Sell:27% | Risk:60% | → ALLOW_BUY | 255ms
+2026-07-07 06:27:17.655 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:27:17.872 | INFO     | monitoring.logger:info:70 - CLOSE #88745950 | XAUUSD | ✅ WIN | +45.6 pips | 0min
+2026-07-07 06:27:19.223 | DEBUG    | monitoring.logger:debug:65 - Memory: 39 records
+2026-07-07 06:30:02.371 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:30:02.670 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:30:02.725 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 39 vectors
+2026-07-07 06:30:02.727 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:30:02.863 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 06:30:02.978 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=62%
+2026-07-07 06:30:02.980 | INFO     | monitoring.logger:info:70 - [UTBOT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:30:02.983 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 312ms
+2026-07-07 06:30:02.984 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 312ms
+2026-07-07 06:30:04.036 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:30:04.250 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:30:04.267 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:30:04.944 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 06:30:06.015 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=62%
+2026-07-07 06:30:06.018 | INFO     | monitoring.logger:info:70 - [LVN] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:30:06.019 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:62% | → ALLOW_BUY | 1768ms
+2026-07-07 06:30:06.020 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:62% | → ALLOW_BUY | 1768ms
+2026-07-07 06:30:07.222 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:30:07.442 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:30:07.443 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:30:07.599 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 06:30:07.714 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=62%
+2026-07-07 06:30:07.714 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:30:07.715 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 273ms
+2026-07-07 06:30:07.716 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 273ms
+2026-07-07 06:30:29.351 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:30:29.658 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (23%)
+2026-07-07 06:30:29.660 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:30:29.775 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 06:30:29.871 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=62%
+2026-07-07 06:30:29.876 | INFO     | monitoring.logger:info:70 - [AMT] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=SELL | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:30:29.877 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 218ms
+2026-07-07 06:30:29.880 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:SELL | Buy:72% Sell:28% | Risk:62% | → BLOCK | 218ms
+2026-07-07 06:43:11.923 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:43:12.232 | INFO     | monitoring.logger:info:70 - CLOSE #88747575 | XAUUSD | ✅ WIN | +25.5 pips | 0min
+2026-07-07 06:43:13.087 | DEBUG    | monitoring.logger:debug:65 - Memory: 40 records
+2026-07-07 06:43:13.692 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:43:13.895 | INFO     | monitoring.logger:info:70 - CLOSE #88747582 | XAUUSD | ✅ WIN | +20.3 pips | 0min
+2026-07-07 06:43:14.591 | DEBUG    | monitoring.logger:debug:65 - Memory: 41 records
+2026-07-07 06:43:14.918 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:43:15.126 | INFO     | monitoring.logger:info:70 - CLOSE #88747583 | XAUUSD | ✅ WIN | +25.1 pips | 0min
+2026-07-07 06:43:15.818 | DEBUG    | monitoring.logger:debug:65 - Memory: 42 records
+2026-07-07 06:46:21.570 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 06:46:21.758 | INFO     | monitoring.logger:info:70 - CLOSE #88747910 | XAUUSD | ❌ LOSS | -100.1 pips | 0min
+2026-07-07 06:46:22.371 | DEBUG    | monitoring.logger:debug:65 - Memory: 43 records
+2026-07-07 06:48:56.353 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 06:48:56.656 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (28%)
+2026-07-07 06:48:56.657 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 43 vectors
+2026-07-07 06:48:56.659 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 06:48:56.772 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=69% SELL=31% → BUY (conf=19%)
+2026-07-07 06:48:56.885 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=62%
+2026-07-07 06:48:56.886 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_LL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=HIGH[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 06:48:56.887 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:62% | → ALLOW_BUY | 230ms
+2026-07-07 06:48:56.888 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:69% Sell:31% | Risk:62% | → ALLOW_BUY | 230ms
+2026-07-07 07:07:38.822 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 07:07:39.220 | INFO     | monitoring.logger:info:70 - CLOSE #88749991 | XAUUSD | ✅ WIN | +96.3 pips | 0min
+2026-07-07 07:07:39.991 | DEBUG    | monitoring.logger:debug:65 - Memory: 44 records
+2026-07-07 07:07:40.200 | ERROR    | monitoring.logger:error:80 - update_trade_outcome (trades): {'message': "Could not find the 'exit_price' column of 'trades' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2026-07-07 07:07:40.677 | INFO     | monitoring.logger:info:70 - CLOSE #88749993 | XAUUSD | ✅ WIN | +32.5 pips | 0min
+2026-07-07 07:07:41.382 | DEBUG    | monitoring.logger:debug:65 - Memory: 45 records
+2026-07-07 07:18:06.752 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 07:18:07.491 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (22%)
+2026-07-07 07:18:07.518 | DEBUG    | monitoring.logger:debug:65 - Index rebuilt: 45 vectors
+2026-07-07 07:18:07.525 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 07:18:07.681 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 07:18:07.795 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=64%
+2026-07-07 07:18:07.804 | INFO     | monitoring.logger:info:70 - [MSV_BREACH_HL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 07:18:07.806 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:64% | → ALLOW_BUY | 316ms
+2026-07-07 07:18:07.819 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:64% | → ALLOW_BUY | 316ms
+2026-07-07 07:30:03.920 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 07:30:04.280 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (21%)
+2026-07-07 07:30:04.282 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 07:30:04.538 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 07:30:04.714 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 07:30:04.717 | INFO     | monitoring.logger:info:70 - [FRACTAL] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 07:30:04.719 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:60% | → ALLOW_BUY | 439ms
+2026-07-07 07:30:04.721 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:60% | → ALLOW_BUY | 439ms
+2026-07-07 07:30:06.179 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-07 07:30:06.423 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → strong_bear_trend (21%)
+2026-07-07 07:30:06.427 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 20 similar | WR=85% | avgPnL=+11.3 pips
+2026-07-07 07:30:06.535 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=72% SELL=28% → BUY (conf=22%)
+2026-07-07 07:30:06.703 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=60%
+2026-07-07 07:30:06.704 | INFO     | monitoring.logger:info:70 - [TRAP] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=strong_bear_trend[BUY:MED/SELL:MED], session=asian[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-07 07:30:06.705 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:60% | → ALLOW_BUY | 281ms
+2026-07-07 07:30:06.706 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:72% Sell:28% | Risk:60% | → ALLOW_BUY | 281ms
