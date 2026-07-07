@@ -453,13 +453,18 @@ def generate():
         pickle.dump(trades, f)
     memory.save()
 
-    wins      = sum(1 for t in trades if t["outcome"] == "WIN")
-    synth     = sum(1 for t in trades if t.get("_synthetic"))
+    wins = sum(1 for t in trades if t["outcome"] == "WIN")
+    
     print(f"\n{'='*55}")
     print(f"  Total records : {len(trades)}")
     print(f"  Real trades   : {real_count}")
-    print(f"  Synthetic     : {synth}")
-    print(f"  Win rate      : {wins/len(trades):.1%}")
+    print(f"  Synthetic     : {len(trades) - real_count}")
+    
+    if len(trades) > 0:
+        print(f"  Win rate      : {wins/len(trades):.1%}")
+    else:
+        print(f"  Win rate      : N/A (no trades)")
+        
     print(f"  Memory size   : {memory.size()}")
     print(f"  Saved to      : {OUT_PATH}")
     print(f"{'='*55}")
