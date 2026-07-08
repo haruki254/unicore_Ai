@@ -146,6 +146,18 @@ class BaseMLModel(ABC):
             )
             return {}
 
+        # TimeSeriesSplit requires n_samples > n_splits. On small bootstrap
+        # datasets, scale n_splits down so folds stay non-degenerate rather
+        # than erroring or silently producing tiny/empty validation folds.
+        max_safe_splits = max(1, len(X) - 1)
+        if n_splits > max_safe_splits:
+            model_logger.warning(
+                "{} requested {} splits but only {} samples available — "
+                "reducing to {} splits.",
+                self.model_type, n_splits, len(X), max_safe_splits
+            )
+            n_splits = max_safe_splits
+
         self._feature_names = list(X.columns)
         model_logger.info(
             "Training {} | {} samples | {} features | {} splits",

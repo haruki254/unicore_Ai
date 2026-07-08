@@ -43,7 +43,12 @@ class Settings:
 
     # ── Models ────────────────────────────────────────────────
     model_retrain_interval_hours: int  = _envi("MODEL_RETRAIN_INTERVAL_HOURS", 24)
-    model_min_training_samples:   int  = _envi("MODEL_MIN_TRAINING_SAMPLES", 200)
+    # Lowered from 200 -> 30: with 5 walk-forward splits, TimeSeriesSplit
+    # needs > n_splits rows to avoid erroring, and each fold needs both
+    # classes present in its training portion to produce a usable metric.
+    # 30 is a practical floor for that; below it, results get too noisy
+    # to trust even though the code won't crash. Override via env var.
+    model_min_training_samples:   int  = _envi("MODEL_MIN_TRAINING_SAMPLES", 30)
     model_save_path:              str  = _env("MODEL_SAVE_PATH", "./models_saved")
     walk_forward_splits:          int  = _envi("WALK_FORWARD_SPLITS", 5)
 

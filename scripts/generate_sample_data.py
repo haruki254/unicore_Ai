@@ -193,65 +193,29 @@ def _row_to_trade(row: dict, pipeline: FeaturePipeline) -> dict | None:
     exit_p    = float(row.get("exit_price") or entry)
     spread    = float(row.get("spread_pips") or 1.0) if "spread_pips" in row else 1.0
 
-    # ── Use real snapshot features when available, else reconstruct ──
+    # ── Use real snapshot features when available ──
     snap = row.get("_snapshot")
 
     if snap and snap.get("features"):
-        raw_features = snap["features"]
+        # Prefer stored features from market_snapshots
+        raw_features = snap.get("features")
         if isinstance(raw_features, str):
             import json
             raw_features = json.loads(raw_features)
+
         features = {k: raw_features.get(k, 0.0) for k in ALL_FEATURE_NAMES}
 
-        if snap.get("candles_m5"):
-            try:
-                snapshot = {
-                    "symbol":      row.get("symbol", "XAUUSD"),
-                    "timestamp":   opened_at,
-                    "price":       float(snap.get("close_price") or exit_p),
-                    "spread_pips": float(snap.get("spread_pips") or spread),
-                    "candles_m5":  snap["candles_m5"],
-                    "candles_m15": snap.get("candles_m15") or snap["candles_m5"][::3],
-                    "candles_h1":  snap.get("candles_h1")  or snap["candles_m5"][::12],
-                    "candles_h4":  snap.get("candles_h4")  or snap["candles_m5"][::48],
-                    "candles_d1":  snap.get("candles_d1")  or snap["candles_m5"][::288],
-                }
-                recomputed = pipeline.compute(snapshot)
-                for k in ALL_FEATURE_NAMES:
-                    if recomputed.get(k) is not None:
-                        features[k] = recomputed[k]
-            except Exception as e:
-                warnings.warn(f"Snapshot recompute failed for ticket {ticket}: {e}")
+        print(f"  Used stored features for ticket {ticket}")
+
     else:
-        # Fallback: reconstruct a plausible price series from entry → exit
-        n = 110
-        price_move = (exit_p - entry) / max(n, 1)
-        closes = entry + np.cumsum(np.random.randn(n) * abs(price_move) * 0.5) + np.linspace(0, exit_p - entry, n)
-        highs  = closes + np.abs(np.random.randn(n) * abs(price_move) * 0.3)
-        lows   = closes - np.abs(np.random.randn(n) * abs(price_move) * 0.3)
-        opens  = np.roll(closes, 1); opens[0] = closes[0]
-        vols   = np.random.randint(200, 2000, n).astype(float)
-
-        df = pd.DataFrame({"open": opens, "high": highs, "low": lows, "close": closes, "volume": vols})
-        candles = df.to_dict("records")
-
-        snapshot = {
-            "symbol":      row.get("symbol", "XAUUSD"),
-            "timestamp":   opened_at,
-            "price":       exit_p,
-            "spread_pips": spread,
-            "candles_m5":  candles,
-            "candles_m15": candles[::3],
-            "candles_h1":  candles[::12],
-            "candles_h4":  candles[::48],
-            "candles_d1":  candles[::288],
-        }
-
-        try:
-            features = pipeline.compute(snapshot)
-        except Exception as e:
-            warnings.warn(f"Feature computation failed for ticket {ticket}: {e}")
-            features = {k: 0.0 for k in ALL_FEATURE_NAMES}
+        # Fallback - minimal reconstruction (avoid full DataFrame if possible)
+        print(f"  No snapshot/features for ticket {ticket} - using basic fallback")
+        features = {k: 0.0 for k in ALL_FEATURE_NAMES}
+        # Add basic price action
+        entry = float(row.get("entry_price", 0))
+        exit_p = float(row.get("exit_price", entry))
+        features["price"] = exit_p
+        features["structure_score"] = 0.5 if exit_p > entry else -0.5
 
     win_prob = 0.65 if outcome == "WIN" else 0.35
     win_prob = float(np.clip(win_prob + np.random.uniform(-0.05, 0.05), 0.25, 0.85))

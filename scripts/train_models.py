@@ -50,8 +50,13 @@ def train(force: bool = False):
     if not X_trader.empty:
         metrics = trader_ai.train(X_trader, df_trader)
         best    = trader_ai.get_best_metrics()
-        print(f"\n  Best algorithm : {trader_ai.best_algorithm}")
-        print(f"  ROC-AUC (WF)   : {best.roc_auc:.4f}" if best else "  No metrics")
+        if not metrics:
+            print(f"\n  ⚠️  Skipped — {len(X_trader)} samples is below the "
+                  f"configured floor ({settings.model_min_training_samples}). "
+                  f"Adjust MODEL_MIN_TRAINING_SAMPLES if you want to train anyway.")
+        else:
+            print(f"\n  Best algorithm : {trader_ai.best_algorithm}")
+            print(f"  ROC-AUC (WF)   : {best.roc_auc:.4f}" if best else "  No metrics")
         print(f"  Elapsed        : {time.perf_counter()-t0:.1f}s")
     else:
         print("  ⚠️  No training data available for Trader AI")
@@ -65,8 +70,13 @@ def train(force: bool = False):
     if not X_risk.empty:
         metrics = risk_manager.train(X_risk, df_risk)
         best    = risk_manager.get_best_metrics()
-        print(f"\n  Best algorithm : {risk_manager.best_algorithm}")
-        print(f"  ROC-AUC (WF)   : {best.roc_auc:.4f}" if best else "  No metrics")
+        if not metrics:
+            print(f"\n  ⚠️  Skipped — {len(X_risk)} samples is below the "
+                  f"configured floor ({settings.model_min_training_samples}). "
+                  f"Adjust MODEL_MIN_TRAINING_SAMPLES if you want to train anyway.")
+        else:
+            print(f"\n  Best algorithm : {risk_manager.best_algorithm}")
+            print(f"  ROC-AUC (WF)   : {best.roc_auc:.4f}" if best else "  No metrics")
         print(f"  Elapsed        : {time.perf_counter()-t1:.1f}s")
     else:
         print("  ⚠️  No training data available for Risk Manager AI")
