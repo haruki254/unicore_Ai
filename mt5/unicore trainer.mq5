@@ -1,6 +1,17 @@
 //+------------------------------------------------------------------+
 //|                                                    Unicore.mq5   |
 //|         Unicore — XAUUSD | Multi-Strategy Executor               |
+//|         v5.23: removed Python Lot Bridge integration entirely —   |
+//|         lot size is now a flat hardcoded 0.01 for every trade.    |
+//|         Deleted: PY_* inputs, g_py_* runtime state, PY_FILENAME,  |
+//|         PY_ParseDouble(), PY_ReadLotParams(), PY_GetMultiplier(), |
+//|         CalcBaseLot(), and all lot-gate branching in CalcLotSize()|
+//|         / OpenTrade() / dashboard. CalcLotSize() now just returns |
+//|         0.01 (still snapped to the symbol's volume step/min/max  |
+//|         in case the broker's minimum lot for XAUUSD isn't 0.01).  |
+//|         Every "Python Bridge" / "Lot Gate" row was removed from   |
+//|         Print() logging and the on-chart Comment() dashboard.     |
+//|                                                                     |
 //|         v5.22: five trade_history data-quality fixes, found by     |
 //|         inspecting exported rows before AI training                |
 //|           1) max_drawdown_pips was hardcoded to 0.0 for every       |
@@ -52,6 +63,33 @@
 //|           Supabase write path, not at this file — check that side  |
 //|           too, this patch can't fix code it can't see.              |
 //|                                                                     |
+//|         v5.24: MSV gate remnants + AI blocking/flip removed —      |
+//|         this EA now exists purely to feed the AI backend real      |
+//|         trade data; /predict is informational only and never       |
+//|         gates or alters a trade.                                    |
+//|           MSV-vs-non-MSV split deleted from ProcessSignalsArray():  |
+//|           v5.14 already made non-MSV signals execute freely, so the |
+//|           split, GetMSVDirection()-based flip-flush              |
+//|           (CloseOppositeDirectionTrades), and dir-block filtering   |
+//|           were dead ceremony around a rule that no longer exists.   |
+//|           All signals now go through one uniform path via          |
+//|           RouteSignal(). Removed: GetMSVDirection(), CountMSVTrades,|
+//|           CloseOppositeDirectionTrades(), the msvSigs/nonMsvSigs    |
+//|           split and its Print()s, "MSV=PRIMARY"/"Gate: REMOVED"/    |
+//|           "K1 MSV ★" dashboard labeling, g_lastVote.                |
+//|           TI AI is now report-only: /predict is still called (still |
+//|           needed for snapshot_id/prediction_id to report outcomes   |
+//|           against), but its decision can no longer gate or alter a  |
+//|           trade. Removed entirely: the BLOCK early-return in        |
+//|           OpenTrade(), TI_AllowFlip and its flip branch,             |
+//|           TI_OverrideBlock, TI_OverrideDemoOnly, IsDemoAccount(),    |
+//|           the "_OV" comment tag, g_ti_overrides, and every dashboard |
+//|           row referencing overrides. g_ti_decision/g_ti_blocks/     |
+//|           g_ti_allows are kept as passive stats (what the AI would  |
+//|           have said) since they cost nothing and are useful         |
+//|           context, but nothing in OpenTrade() branches on them      |
+//|           anymore.                                                  |
+//|                                                                     |
 //|         v5.21: two trade_history data-integrity fixes             |
 //|           1) direction was read from the CLOSING deal's own       |
 //|              DEAL_TYPE in OnTradeTransaction(). MT5 always closes |
@@ -66,16 +104,6 @@
 //|              same as closed_at/created_at — running hours ahead   |
 //|              of them. Now uses TimeGMT(), like the rest of the EA |
 //|              already does for session/lookback timing.            |
-//|                                                                   |
-//|         v5.20: manual override for AI BLOCK decisions             |
-//|           TI_OverrideBlock (input) — when true, a BLOCK verdict   |
-//|           no longer stops the trade; it still logs/reports to     |
-//|           the AI backend (ai_block_overridden=true) so blocked    |
-//|           trades produce real outcomes to train/calibrate on.     |
-//|           TI_OverrideDemoOnly (input, default true) — override    |
-//|           only takes effect on demo accounts, ignored on live.    |
-//|           Comment tag "_OV" + dashboard "Overrides: N" counter    |
-//|           make overridden trades visible on-chart and in Journal. |
 //|                                                                   |
 //|         v5.19: dashboard now shows predict/patch/report status    |
 //|           g_ti_predictStatus/Time — TI_CheckSignal() outcome      |
@@ -118,7 +146,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Unicore"
 #property link      "https://unicoregoldbot.tiiny.site"
-#property version   "5.22"
+#property version   "5.24"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -162,37 +190,25 @@ input double  FixedSLPoints      = 10.0;
 
 // ============================================================
 // LOT SIZING
+// v5.23: Python Lot Bridge removed entirely. Lot size is now a flat
+// hardcoded constant — no equity scaling, no multiplier, no bridge
+// file, no gate. CalcLotSize() below just returns this value, snapped
+// to the symbol's volume step/min/max.
 // ============================================================
 input string  Grp7               = "=== Lot Sizing ===";
-input double  LotPerStep         = 0.02;
-input double  EquityStep         = 500.0;
-
-// ============================================================
-// PYTHON LOT BRIDGE INPUTS
-// ============================================================
-input string  PY_Grp             = "=== Python Lot Bridge ===";
-input bool    PY_Enabled         = true;
-input int     PY_StaleSeconds    = 60;
-input double  PY_FallbackMult    = 0.50;
-input double  PY_MultFloor       = 0.25;
-input double  PY_MultCeil        = 2.00;
+input double  FixedLotSize       = 0.01;
 
 // ============================================================
 // TRADING INTELLIGENCE AI
+// v5.24: this stage is now report-only. /predict is still called on
+// every signal — snapshot_id/prediction_id from its response are still
+// needed so TI_ReportTrade() can report a real outcome against them —
+// but the decision it returns no longer gates or reverses a trade.
 // ============================================================
 input string  TI_Grp             = "=== Trading Intelligence AI ===";
 input bool    TI_Enabled         = true;
 input string  TI_API_URL         = "http://127.0.0.1:8000";
-input bool    TI_AllowFlip       = false;
 input int     TI_Timeout_ms      = 5000;
-
-// v5.20 — manual override for AI BLOCK decisions. Meant for training/
-// calibrating the model on a demo account: trades execute regardless of
-// a BLOCK verdict, but the verdict + real outcome still get reported to
-// the AI backend (ai_block_overridden=true) so it has something to learn
-// from instead of only ever seeing outcomes it already approved of.
-input bool    TI_OverrideBlock       = false;  // Execute anyway when AI says BLOCK (training mode)
-input bool    TI_OverrideDemoOnly    = true;   // Only let the override take effect on a DEMO account
 
 // Hardcoded — must match API_KEY in your Python .env file.
 const string  TI_API_KEY         = "@Youtube2017";
@@ -242,21 +258,10 @@ bool IsUnicoreMagic(ulong magic)
 }
 
 // ============================================================
-// PYTHON BRIDGE — RUNTIME STATE
-// ============================================================
-double   g_py_multiplier     = 1.00;
-string   g_py_mode           = "INIT";
-string   g_py_regime         = "—";
-double   g_py_health         = 50.0;
-bool     g_py_stale          = true;
-string   g_py_status         = "Waiting for bridge...";
-bool     g_py_use_fixed_lot  = false;
-double   g_py_fixed_lot      = 0.01;
-
-#define PY_FILENAME "unicore_lot_params.json"
-
-// ============================================================
 // TRADING INTELLIGENCE — RUNTIME STATE
+// v5.24: g_ti_decision/g_ti_blocks/g_ti_allows are kept as passive,
+// informational stats only (what the AI would have decided) — nothing
+// branches on them anymore.
 // ============================================================
 string   g_ti_decision       = "—";
 string   g_ti_regime         = "—";
@@ -266,7 +271,6 @@ double   g_ti_sell_prob      = 0.0;
 int      g_ti_blocks         = 0;
 int      g_ti_allows         = 0;
 string   g_ti_status         = "Waiting...";
-int      g_ti_overrides      = 0;   // v5.20: BLOCK verdicts overridden and executed anyway
 
 // v5.19: per-stage pipeline visibility (predict / patch / report)
 string   g_ti_predictStatus  = "—";
@@ -447,7 +451,6 @@ string   g_lastSignalAction   = "None";
 string   g_lastSignalStrategy = "None";
 string   g_lastSignalStatus   = "Waiting...";
 string   g_lastError          = "";
-string   g_lastVote           = "—";
 int      g_totalWins      = 0; double g_totalWinProfit  = 0;
 int      g_totalLosses    = 0; double g_totalLossAmount = 0;
 double   g_netProfit      = 0;
@@ -465,15 +468,6 @@ void MarkProcessed(string id)
       g_processedCount = MAX_PROCESSED-1;
    }
    g_processedIDs[g_processedCount++] = id;
-}
-
-// ============================================================
-// ACCOUNT HELPER  (v5.20)
-// Used to gate TI_OverrideBlock to demo accounts only.
-// ============================================================
-bool IsDemoAccount()
-{
-   return (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_DEMO);
 }
 
 // ============================================================
@@ -504,140 +498,24 @@ string GetCurrentSession()
 }
 
 // ============================================================
-// PYTHON LOT BRIDGE FUNCTIONS
-// ============================================================
-double PY_ParseDouble(string json, string key, double defaultVal = 0.0)
-{
-   string raw = ExtractJSONValue(json, key);
-   if(raw == "" || raw == "null") return defaultVal;
-   return StringToDouble(raw);
-}
-
-void PY_ReadLotParams()
-{
-   if(!PY_Enabled)
-   {
-      g_py_multiplier    = 1.0;
-      g_py_use_fixed_lot = false;
-      g_py_status        = "Bridge disabled — multiplier 1.00x";
-      return;
-   }
-
-   int fh = FileOpen(PY_FILENAME, FILE_READ | FILE_TXT | FILE_ANSI);
-   if(fh == INVALID_HANDLE)
-   {
-      g_py_stale  = true;
-      g_py_status = "🔴 Bridge file not found — is mt5_lotbridge.py running?";
-      if(DebugMode) Print("[PY_Bridge] File not found: ", PY_FILENAME);
-      return;
-   }
-
-   string json = "";
-   while(!FileIsEnding(fh))
-      json += FileReadString(fh);
-   FileClose(fh);
-
-   if(StringLen(json) < 10)
-   {
-      g_py_stale  = true;
-      g_py_status = "🔴 Bridge file is empty";
-      return;
-   }
-
-   long mod_unix = (long)FileGetInteger(PY_FILENAME, FILE_MODIFY_DATE);
-   int  age      = (int)(TimeCurrent() - (datetime)mod_unix);
-
-   if(age > PY_StaleSeconds)
-   {
-      g_py_stale         = true;
-      g_py_use_fixed_lot = false;
-      g_py_status        = StringFormat("⚠️  Stale %ds — fallback %.2fx", age, PY_FallbackMult);
-      if(DebugMode)
-         Print("[PY_Bridge] Stale by ", age, "s — fallback ", PY_FallbackMult);
-      return;
-   }
-
-   double mult   = PY_ParseDouble(json, "multiplier",   1.0);
-   double health = PY_ParseDouble(json, "health_score", 50.0);
-   string mode   = ExtractJSONValue(json, "mode");
-   string regime = ExtractJSONValue(json, "regime");
-   bool   useFixed  = (ExtractJSONValue(json, "use_fixed_lot") == "true");
-   double fixedLot  = PY_ParseDouble(json, "fixed_lot", 0.01);
-
-   mult = MathMax(PY_MultFloor, MathMin(PY_MultCeil, mult));
-
-   g_py_multiplier    = mult;
-   g_py_health        = health;
-   g_py_mode          = (mode   != "") ? mode   : "UNKNOWN";
-   g_py_regime        = (regime != "") ? regime : "UNKNOWN";
-   g_py_use_fixed_lot = useFixed;
-   g_py_fixed_lot     = (fixedLot > 0) ? fixedLot : 0.01;
-   g_py_stale         = false;
-
-   string gateTag = useFixed
-      ? StringFormat("⚠️ LOT GATE ACTIVE — fixed=%.2f", fixedLot)
-      : "✅ Gate open";
-
-   g_py_status = StringFormat("✅ Health %.1f | %s | %s | %.4fx | %s",
-                              health, mode, regime, mult, gateTag);
-
-   if(DebugMode)
-      Print(StringFormat(
-         "[PY_Bridge] mult=%.4f  health=%.1f  mode=%s  regime=%s  "
-         "use_fixed_lot=%s  fixed_lot=%.2f  age=%ds",
-         mult, health, mode, regime,
-         useFixed ? "true" : "false", fixedLot, age));
-}
-
-double PY_GetMultiplier()
-{
-   if(!PY_Enabled) return 1.0;
-   if(g_py_stale)  return PY_FallbackMult;
-   return g_py_multiplier;
-}
-
-// ============================================================
 // LOT SIZING
+// v5.23: Python Lot Bridge removed. CalcLotSize() now just returns the
+// FixedLotSize input, snapped to the symbol's volume step and clamped
+// to its min/max — no equity scaling, no multiplier, no gate file.
 // ============================================================
-double CalcBaseLot()
-{
-   double equity = AccountInfoDouble(ACCOUNT_EQUITY);
-   double steps  = MathFloor(equity / EquityStep);
-   if(steps < 1) steps = 1;
-   return NormalizeDouble(steps * LotPerStep, 2);
-}
-
 double CalcLotSize()
 {
    double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
    double lotMin  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
    double lotMax  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
 
-   if(PY_Enabled && !g_py_stale && g_py_use_fixed_lot)
-   {
-      double fixedLot = g_py_fixed_lot;
-      fixedLot = MathFloor(fixedLot / lotStep) * lotStep;
-      fixedLot = MathMax(fixedLot, lotMin);
-      fixedLot = MathMin(fixedLot, lotMax);
-      if(DebugMode)
-         Print(StringFormat(
-            "[LotCalc] ⚠️ LOT GATE ACTIVE — fixed=%.2f  health=%.1f",
-            fixedLot, g_py_health));
-      return NormalizeDouble(fixedLot, 2);
-   }
-
-   double baseLot = CalcBaseLot();
-   double mult    = PY_GetMultiplier();
-   double lot     = baseLot * mult;
-
-   lot = MathFloor(lot / lotStep) * lotStep;
+   double lot = FixedLotSize;
+   if(lotStep > 0) lot = MathFloor(lot / lotStep) * lotStep;
    lot = MathMax(lot, lotMin);
    lot = MathMin(lot, lotMax);
 
    if(DebugMode)
-      Print(StringFormat(
-         "[LotCalc] ✅ Gate open — equity=$%.2f base=%.2f py_mult=%.4f final=%.2f",
-         AccountInfoDouble(ACCOUNT_EQUITY), baseLot, mult, lot));
+      Print(StringFormat("[LotCalc] Fixed lot = %.2f", lot));
 
    return NormalizeDouble(lot, 2);
 }
@@ -693,59 +571,6 @@ int CountStrategyTrades(string strategy)
       if(StringFind(PositionGetString(POSITION_COMMENT), tag) >= 0) count++;
    }
    return count;
-}
-
-int CountMSVTrades()
-{
-   int count = 0;
-   for(int i = PositionsTotal()-1; i >= 0; i--)
-   {
-      ulong ticket = PositionGetTicket(i); if(ticket == 0) continue;
-      if(PositionGetString(POSITION_SYMBOL)  != _Symbol)              continue;
-      if(PositionGetInteger(POSITION_MAGIC)  != (long)MAGIC_MSV)      continue;
-      if(StringFind(PositionGetString(POSITION_COMMENT),"TF_K1_") >= 0) count++;
-   }
-   return count;
-}
-
-string GetMSVDirection()
-{
-   int buys = 0, sells = 0;
-   for(int i = PositionsTotal()-1; i >= 0; i--)
-   {
-      ulong ticket = PositionGetTicket(i); if(ticket == 0) continue;
-      if(PositionGetString(POSITION_SYMBOL)  != _Symbol)         continue;
-      if(PositionGetInteger(POSITION_MAGIC)  != (long)MAGIC_MSV) continue;
-      if(StringFind(PositionGetString(POSITION_COMMENT),"TF_K1_") < 0) continue;
-      long pt = PositionGetInteger(POSITION_TYPE);
-      if(pt == POSITION_TYPE_BUY)  buys++;
-      if(pt == POSITION_TYPE_SELL) sells++;
-   }
-   if(buys  > 0 && sells == 0) return "BUY";
-   if(sells > 0 && buys  == 0) return "SELL";
-   return "";
-}
-
-int CloseOppositeDirectionTrades(string keepDirection)
-{
-   long closeType = (keepDirection == "BUY") ? POSITION_TYPE_SELL : POSITION_TYPE_BUY;
-   int  closed    = 0;
-   for(int i = PositionsTotal()-1; i >= 0; i--)
-   {
-      ulong ticket = PositionGetTicket(i); if(ticket == 0) continue;
-      if(PositionGetString(POSITION_SYMBOL)  != _Symbol) continue;
-      if(!IsUnicoreMagic((ulong)PositionGetInteger(POSITION_MAGIC))) continue;
-      if(StringFind(PositionGetString(POSITION_COMMENT),"TF_") < 0) continue;
-      if(PositionGetInteger(POSITION_TYPE) != closeType)             continue;
-      string cmt = PositionGetString(POSITION_COMMENT);
-      double pnl = PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
-      if(g_trade.PositionClose(ticket, Slippage))
-      {
-         closed++;
-         Print("🔄 DIR-FLUSH | #", ticket, " [", cmt, "] P&L: $", DoubleToString(pnl, 2));
-      }
-   }
-   return closed;
 }
 
 int CloseStrategyTrades(string strategy)
@@ -824,6 +649,9 @@ void RouteSignal(string id, string action, string originalAction, string strateg
 // TRADING INTELLIGENCE AI — v5.16
 // TI_CheckSignal now returns a TIResult struct so snapshot_id
 // and prediction_id are available to OpenTrade().
+// v5.24: report-only. The struct/decision are still parsed and
+// displayed (useful signal for what the model would have said), but
+// nothing downstream branches on res.decision anymore.
 // ============================================================
 
 // v5.19: TimeToString() emits "yyyy.mm.dd hh:mi:ss" (dot-separated date).
@@ -967,9 +795,9 @@ TIResult TI_CheckSignal(string action, string strategy)
    int httpCode = WebRequest("POST", url, headers, TI_Timeout_ms, post, result, resHeaders);
    if(httpCode < 0 || httpCode != 200)
    {
-      Print("[TI] API unreachable (http=", httpCode, ") — fail-open, trade allowed");
+      Print("[TI] API unreachable (http=", httpCode, ") — informational only, trade proceeds");
       Print("[TI] Response body: ", CharArrayToString(result));
-      g_ti_status         = "⚠️ API offline — trades allowed";
+      g_ti_status         = "⚠️ API offline — trade proceeds (report-only)";
       g_ti_predictStatus  = StringFormat("FAIL http=%d (err=%d)", httpCode, GetLastError());
       g_ti_predictTime    = TimeCurrent();
       return res;   // decision stays "ALLOW"
@@ -988,17 +816,18 @@ TIResult TI_CheckSignal(string action, string strategy)
 
    if(res.decision == "") res.decision = "ALLOW";
 
-   // Update global display state
+   // Update global display state — informational only (v5.24): nothing
+   // downstream branches on these anymore, they're passive dashboard/log stats.
    g_ti_decision  = res.decision;
    g_ti_regime    = res.regime;
    g_ti_quality   = res.quality;
    g_ti_buy_prob  = res.buyProb;
    g_ti_sell_prob = res.sellProb;
 
-   bool blocked = (res.decision == "BLOCK");
-   if(blocked) g_ti_blocks++; else g_ti_allows++;
+   bool wouldHaveBlocked = (res.decision == "BLOCK");
+   if(wouldHaveBlocked) g_ti_blocks++; else g_ti_allows++;
 
-   g_ti_status = StringFormat("%s | %s | Q:%.0f%% | B:%.0f%% S:%.0f%%",
+   g_ti_status = StringFormat("%s | %s | Q:%.0f%% | B:%.0f%% S:%.0f%% (report-only)",
       res.decision, res.regime,
       res.quality  * 100,
       res.buyProb  * 100,
@@ -1008,7 +837,7 @@ TIResult TI_CheckSignal(string action, string strategy)
    g_ti_predictTime   = TimeCurrent();
 
    Print(StringFormat(
-      "[TI] [%s] %s → %s | Regime: %s | Quality: %.1f%% | Buy: %.1f%% Sell: %.1f%%"
+      "[TI] [%s] %s → %s (report-only, trade proceeds regardless) | Regime: %s | Quality: %.1f%% | Buy: %.1f%% Sell: %.1f%%"
       " | snap=%s | pred=%s",
       strategy, action, res.decision, res.regime,
       res.quality * 100, res.buyProb * 100, res.sellProb * 100,
@@ -1108,6 +937,11 @@ void TI_ReportTrade(ulong dealTicket, string symbol, string strategy,
 
 // ============================================================
 // OPEN TRADE — v5.17: stores openedAt alongside other meta
+// v5.24: TI AI is report-only — /predict is still called so
+// snapshot_id/prediction_id can be captured and later reported against,
+// but the trade always proceeds regardless of its decision. wasFlipped
+// is retained as a parameter/field (always false now) since
+// TI_ReportTrade()/trade_history still expect a was_flipped column.
 // ============================================================
 bool OpenTrade(string signalID, string action, string originalAction, string strategy, double stopLoss)
 {
@@ -1116,70 +950,30 @@ bool OpenTrade(string signalID, string action, string originalAction, string str
    if(originalAction=="") originalAction = action;   // v5.22: safety net if a caller has none
 
    double lotSize    = CalcLotSize();
-   bool   wasFlipped = false;
+   bool   wasFlipped = false;   // v5.24: flip capability removed — always false
 
-   // ── Trading Intelligence AI check ──────────────────────────────────────
+   // ── Trading Intelligence AI check — v5.24: report-only ─────────────────
+   // /predict is still called (snapshot_id/prediction_id are still needed to
+   // report a real outcome against), but its decision no longer gates or
+   // reverses the trade. No early return, no flip branch.
    string snapshotId    = "";
    string predictionId  = "";
    string tiRegime      = "";
-   bool   aiWantedBlock = false;   // v5.20: true if AI said BLOCK but override let it through
 
    if(TI_Enabled)
    {
       TIResult tiRes = TI_CheckSignal(action, strategy);   // v5.16: full struct
 
-      // Capture IDs immediately — before any early return
       snapshotId   = tiRes.snapshotId;
       predictionId = tiRes.predictionId;
       tiRegime     = tiRes.regime;
-
-      if(tiRes.decision == "BLOCK")
-      {
-         bool overrideActive = TI_OverrideBlock && (!TI_OverrideDemoOnly || IsDemoAccount());
-
-         if(!overrideActive)
-         {
-            g_lastError = "TI AI: BLOCKED (" + tiRes.regime + " | Q:" +
-                          DoubleToString(tiRes.quality * 100, 0) + "%)";
-            Print("🚫 [TI] Trade BLOCKED | Regime: ", tiRes.regime,
-                  " | Quality: ", DoubleToString(tiRes.quality * 100, 1), "%",
-                  " | Strategy: ", strategy);
-            return false;
-         }
-
-         // v5.20: override active — verdict is logged/reported, not enforced
-         aiWantedBlock = true;
-         g_ti_overrides++;
-         Print("⚠️ [TI] BLOCK OVERRIDDEN — trading anyway (training mode) | Regime: ", tiRes.regime,
-               " | Quality: ", DoubleToString(tiRes.quality * 100, 1), "%",
-               " | Strategy: ", strategy);
-      }
-
-      if(TI_AllowFlip)
-      {
-         if(tiRes.decision == "FLIP_TO_BUY" && action == "SELL")
-         {
-            Print("🔄 [TI] FLIP: SELL → BUY | Regime: ", tiRes.regime, " | Strategy: ", strategy);
-            action     = "BUY";
-            wasFlipped = true;
-         }
-         else if(tiRes.decision == "FLIP_TO_SELL" && action == "BUY")
-         {
-            Print("🔄 [TI] FLIP: BUY → SELL | Regime: ", tiRes.regime, " | Strategy: ", strategy);
-            action     = "SELL";
-            wasFlipped = true;
-         }
-      }
    }
    // ── End TI check ────────────────────────────────────────────────────────
 
    ulong  tradeMagic  = GetMagicForStrategy(strategy);
    string encodedCode = EncodeStrategy(strategy);
 
-   // _FL / _OV suffixes let OnTradeTransaction decode flip/override status at close time
-   string flipTag     = wasFlipped    ? "_FL" : "";
-   string overrideTag = aiWantedBlock ? "_OV" : "";
-   string comment = "TF_" + encodedCode + "_" + StringSubstr(signalID, 0, 8) + flipTag + overrideTag;
+   string comment = "TF_" + encodedCode + "_" + StringSubstr(signalID, 0, 8);
 
    double executePrice = NormalizeDouble(
       (action=="BUY") ? SymbolInfoDouble(_Symbol,SYMBOL_ASK) : SymbolInfoDouble(_Symbol,SYMBOL_BID),
@@ -1194,20 +988,12 @@ bool OpenTrade(string signalID, string action, string originalAction, string str
    if(action=="BUY"  && (executePrice-sl) < minStop) sl = NormalizeDouble(executePrice - minStop, _Digits);
    if(action=="SELL" && (sl-executePrice) < minStop) sl = NormalizeDouble(executePrice + minStop, _Digits);
 
-   string gateLabel = (PY_Enabled && !g_py_stale && g_py_use_fixed_lot)
-      ? StringFormat("GATE=ACTIVE(fixed=%.2f)", g_py_fixed_lot)
-      : StringFormat("GATE=OPEN(mult=%.4f)", PY_GetMultiplier());
-
    Print("║ [",strategy," → ",encodedCode,"] ",action,
          " @ ",DoubleToString(executePrice,_Digits),
          " | SL: ",DoubleToString(sl,_Digits),
          " | Lots: ",DoubleToString(lotSize,2),
          " | Magic: ",IntegerToString((int)tradeMagic),
-         " | TI: ",g_ti_decision," Q:",DoubleToString(g_ti_quality*100,0),"%",
-         " | Flipped: ", wasFlipped ? "YES" : "NO",
-         " | Override: ", aiWantedBlock ? "YES" : "NO",
-         " | PY health: ",DoubleToString(g_py_health,1),
-         " | ",gateLabel,
+         " | TI: ",g_ti_decision," Q:",DoubleToString(g_ti_quality*100,0),"% (report-only)",
          " | Comment: ",comment);
 
    g_trade.SetExpertMagicNumber(tradeMagic);
@@ -1273,28 +1059,25 @@ bool OpenTrade(string signalID, string action, string originalAction, string str
 int OnInit()
 {
    Print("══════════════════════════════════════════════════════════");
-   Print("║ Unicore v5.22 INITIALIZED");
+   Print("║ Unicore v5.24 INITIALIZED");
    Print("║ Symbol: ",_Symbol," | Account: #",(long)AccountInfoInteger(ACCOUNT_LOGIN));
    Print("║ SL: ",DoubleToString(FixedSLPoints,1)," pts | NO TP");
    Print("║ Exit: MANUAL ONLY — signals stack, no auto-close");
    Print("║ COMMENT MASKING: A1=UTBOT B2=TRAP C3=OB D4=FRAC E5=SNIP F6=FVG G7=AMT H8=LVN I9=LIQ J0=SE K1=MSV");
-   Print("║ LOT SIZING: Python Bridge is sole authority");
-   Print("║   Gate ACTIVE (health < 75) → fixed 0.01 lot");
-   Print("║   Gate OPEN   (health >= 75) → ",DoubleToString(LotPerStep,2)," lots per $",DoubleToString(EquityStep,0)," equity × multiplier");
-   Print("║ Python Lot Bridge: ", PY_Enabled ? "ENABLED ✅" : "DISABLED ❌");
+   Print("║ LOT SIZING: Fixed ", DoubleToString(FixedLotSize,2), " lot — Python Bridge removed (v5.23)");
    Print("║ ─────────────────────────────────────────────────────");
    Print("║ MAGIC NUMBER ROUTING (v5.14):");
    Print("║   77701=FRACTAL  77702=OB       77703=TRAP    77704=LIQUIDITY");
    Print("║   77705=AMT      77706=LVN      77707=SE      777701=FVG");
    Print("║   88801=UTBOT    88888=MSV");
-   Print("║ MSV Gate: REMOVED — all signals execute freely");
+   Print("║ All signals execute freely — no gate of any kind (v5.24)");
    Print("║ ─────────────────────────────────────────────────────");
-   Print("║ Trading Intelligence AI: ", TI_Enabled ? "ENABLED ✅" : "DISABLED ❌");
+   Print("║ Trading Intelligence AI: ", TI_Enabled ? "ENABLED ✅ (report-only, v5.24)" : "DISABLED ❌");
    if(TI_Enabled)
    {
       Print("║   API URL: ", TI_API_URL);
-      Print("║   Flip mode: ", TI_AllowFlip ? "ENABLED (AI can reverse direction)" : "DISABLED (AI can only block)");
-      Print("║   Fail-open: trades allowed when API is offline");
+      Print("║   Mode: REPORT-ONLY — /predict is called and logged, but never");
+      Print("║          gates or reverses a trade (v5.24). Fail-open regardless.");
       Print("║   ea_id: per-strategy profiling ENABLED ✅");
       Print("║   snapshot_id + prediction_id round-trip: ENABLED ✅ (v5.16)");
       Print("║   opened_at round-trip: ENABLED ✅ (v5.17)");
@@ -1305,8 +1088,6 @@ int OnInit()
       Print("║   IMPORTANT for XAUUSD: set MAX_SPREAD_PIPS=50 in your .env file");
    }
    Print("══════════════════════════════════════════════════════════");
-
-   PY_ReadLotParams();
 
    g_lastCheckTime = g_lastResetDate = TimeCurrent();
    g_attachTimeGMT = TimeGMT();
@@ -1326,7 +1107,6 @@ void OnTimer()
    datetime now = TimeCurrent();
    if(now - g_lastCheckTime < PollingInterval) return;
    g_lastCheckTime = now;
-   PY_ReadLotParams();
    CheckForNewSignals();
 }
 
@@ -1363,7 +1143,7 @@ void OnTradeTransaction(
    // ── Extract strategy and flip status from comment ────────────────────────
    string comment    = HistoryDealGetString(dealTicket, DEAL_COMMENT);
    string strategy   = "UNKNOWN";   // v5.22: renamed from "default" — means "couldn't decode", not a real strategy
-   bool   wasFlipped = false;
+   bool   wasFlipped = false;       // v5.24: flip capability removed — comment never carries "_FL" anymore, kept for schema compatibility
 
    int startPos = StringFind(comment, "TF_");
    if(startPos >= 0)
@@ -1376,7 +1156,7 @@ void OnTradeTransaction(
          strategy = DecodeStrategy(encodedCode);
       }
    }
-   wasFlipped = (StringFind(comment, "_FL") >= 0);
+   wasFlipped = (StringFind(comment, "_FL") >= 0);   // will stay false on all new trades; harmless on legacy ones
 
    // ── v5.16/v5.17: look up meta by position ticket ─────────────────────────
    ulong    posId        = (ulong)HistoryDealGetInteger(dealTicket, DEAL_POSITION_ID);
@@ -1577,6 +1357,12 @@ struct ParsedSignal
 
 // ============================================================
 // PROCESS SIGNALS
+// v5.24: MSV-vs-non-MSV split removed. v5.14 already made non-MSV
+// signals execute freely, so the split, direction-flip flushing
+// (GetMSVDirection()/CloseOppositeDirectionTrades()), and dir-block
+// filtering were dead ceremony around a rule that no longer existed —
+// every signal took the "executes freely" path regardless. All valid
+// signals now go through one uniform loop via RouteSignal().
 // ============================================================
 void ProcessSignalsArray(string json)
 {
@@ -1624,101 +1410,33 @@ void ProcessSignalsArray(string json)
    }
    if(validCount==0){ g_lastSignalStatus="No valid signals"; UpdateChartDisplay(); return; }
 
-   ParsedSignal msvSigs[];    int msvCount=0;
-   ParsedSignal nonMsvSigs[]; int nonMsvCount=0;
-   for(int i=0;i<validCount;i++)
-   {
-      if(IsMSVStrategy(valid[i].strategy))
-         { ArrayResize(msvSigs,    msvCount+1);    msvSigs[msvCount++]    = valid[i]; }
-      else
-         { ArrayResize(nonMsvSigs, nonMsvCount+1); nonMsvSigs[nonMsvCount++] = valid[i]; }
-   }
-
    Print("══════════════════════════════════════════════════════════");
-   if(msvCount>0)    Print("║ 🟢 MSV SIGNALS: ",msvCount,"  — executing first (primary)");
-   if(nonMsvCount>0) Print("║ 🔵 NON-MSV SIGNALS: ",nonMsvCount," — executing freely (gate removed)");
+   Print("║ SIGNALS: ",validCount," — executing (no gate)");
+
+   Print("║ LOT SIZE (this batch): ",DoubleToString(CalcLotSize(),2),
+         " | Equity: $",DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),2));
+   Print("══════════════════════════════════════════════════════════");
 
    int mirrored = 0;
 
-   for(int i=0;i<msvCount;i++)
+   for(int i=0;i<validCount;i++)
    {
-      g_lastSignalID       = msvSigs[i].id;
-      g_lastSignalAction   = msvSigs[i].action;
-      g_lastSignalStrategy = msvSigs[i].strategy;
+      g_lastSignalID       = valid[i].id;
+      g_lastSignalAction   = valid[i].action;
+      g_lastSignalStrategy = valid[i].strategy;
       g_lastError          = "";
-
-      string existingDir = GetMSVDirection();
-      if(existingDir!="" && existingDir!=msvSigs[i].action)
-      {
-         int flushed = CloseOppositeDirectionTrades(msvSigs[i].action);
-         Print("║ 🔄 MSV DIRECTION FLIP [",existingDir," → ",msvSigs[i].action,"]",
-               " — closed ",flushed," opposite trade(s)");
-      }
-
-      Print("║ 🟢 MSV PRIMARY [",msvSigs[i].strategy,"] ",msvSigs[i].action," — executing now");
       if(AutoTrade)
       {
-         OpenTrade(msvSigs[i].id, msvSigs[i].action, msvSigs[i].original_action,
-                   msvSigs[i].strategy, msvSigs[i].sl);
-         MarkProcessed(msvSigs[i].id); SaveProcessedIDs();
+         RouteSignal(valid[i].id, valid[i].action, valid[i].original_action,
+                     valid[i].strategy, valid[i].entry, valid[i].sl);
+         MarkProcessed(valid[i].id); SaveProcessedIDs();
          g_lastSignalStatus = (g_lastError=="")
-            ? "✅ ["+msvSigs[i].strategy+"] "+msvSigs[i].action+" (primary)"
+            ? "✅ ["+valid[i].strategy+"] "+valid[i].action+" executed"
             : "❌ "+g_lastError;
-         UpdateSignalStatus(msvSigs[i].id, g_lastError=="" ? "mirrored" : "error");
+         UpdateSignalStatus(valid[i].id, g_lastError=="" ? "mirrored" : "error");
          if(g_lastError=="") mirrored++;
       }
-      else { MarkProcessed(msvSigs[i].id); g_lastSignalStatus="Auto-trade OFF"; }
-   }
-
-   if(nonMsvCount > 0)
-   {
-      string msvDir = GetMSVDirection();
-      if(msvDir != "")
-      {
-         string oppositeDir = (msvDir=="BUY") ? "SELL" : "BUY";
-         int dirBlocked = 0;
-         for(int i=0;i<nonMsvCount;i++)
-         {
-            if(nonMsvSigs[i].id=="" || nonMsvSigs[i].action!=oppositeDir) continue;
-            Print("⛔ DIR-BLOCK [",nonMsvSigs[i].strategy,"] ",nonMsvSigs[i].action,
-                  " — MSV direction is ",msvDir);
-            MarkProcessed(nonMsvSigs[i].id);
-            UpdateSignalStatus(nonMsvSigs[i].id,"dir_blocked");
-            nonMsvSigs[i].id = "";
-            dirBlocked++;
-         }
-         if(dirBlocked>0)
-            Print("║ 🧭 Direction filter: blocked ",dirBlocked," signal(s) opposing MSV ",msvDir);
-      }
-
-      Print("║ LOT SIZE (this batch): ",DoubleToString(CalcLotSize(),2),
-            " | PY health: ",DoubleToString(g_py_health,1),
-            " | Gate: ", (g_py_use_fixed_lot ? "ACTIVE (fixed 0.01)" : "OPEN"),
-            " | Equity: $",DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),2));
-      Print("══════════════════════════════════════════════════════════");
-
-      g_lastVote = (msvDir != "") ? "MSV DIR: " + msvDir : "FREE";
-
-      for(int i=0;i<nonMsvCount;i++)
-      {
-         if(nonMsvSigs[i].id=="") continue;
-         g_lastSignalID       = nonMsvSigs[i].id;
-         g_lastSignalAction   = nonMsvSigs[i].action;
-         g_lastSignalStrategy = nonMsvSigs[i].strategy;
-         g_lastError          = "";
-         if(AutoTrade)
-         {
-            RouteSignal(nonMsvSigs[i].id, nonMsvSigs[i].action, nonMsvSigs[i].original_action,
-                        nonMsvSigs[i].strategy, nonMsvSigs[i].entry, nonMsvSigs[i].sl);
-            MarkProcessed(nonMsvSigs[i].id); SaveProcessedIDs();
-            g_lastSignalStatus = (g_lastError=="")
-               ? "✅ ["+nonMsvSigs[i].strategy+"] "+nonMsvSigs[i].action+" executed"
-               : "❌ "+g_lastError;
-            UpdateSignalStatus(nonMsvSigs[i].id, g_lastError=="" ? "mirrored" : "error");
-            if(g_lastError=="") mirrored++;
-         }
-         else { MarkProcessed(nonMsvSigs[i].id); g_lastSignalStatus="Auto-trade OFF"; }
-      }
+      else { MarkProcessed(valid[i].id); g_lastSignalStatus="Auto-trade OFF"; }
    }
 
    if(mirrored>0) Print("║ BATCH: Executed ",mirrored," of ",validCount," signal(s)");
@@ -1833,7 +1551,7 @@ void CalculateTradeStats()
 }
 
 // ============================================================
-// CHART DISPLAY  (v5.17)
+// CHART DISPLAY  (v5.24)
 // ============================================================
 void UpdateChartDisplay()
 {
@@ -1863,29 +1581,12 @@ void UpdateChartDisplay()
    int totalOpen = utbotOpen+trapOpen+obOpen+fractalOpen+sniperOpen+fvgOpen
                  + amtOpen+lvnOpen+liqOpen+seOpen+msvOpen;
 
-   string msvDirLabel;
-   string msvDir = GetMSVDirection();
-   if(msvDir == "")   msvDirLabel = "No live MSV";
-   else               msvDirLabel = msvDir + " (dir-filter active)";
-
-   string lotGateRow;
-   if(!PY_Enabled)
-      lotGateRow = "║ Lot Gate: DISABLED (bridge off)";
-   else if(g_py_stale)
-      lotGateRow = "║ Lot Gate: ⚠️ UNKNOWN (stale file)";
-   else if(g_py_use_fixed_lot)
-      lotGateRow = StringFormat("║ Lot Gate: ⚠️ ACTIVE — fixed=%.2f lot  (health %.1f < 75)",
-                                g_py_fixed_lot, g_py_health);
-   else
-      lotGateRow = StringFormat("║ Lot Gate: ✅ OPEN — scaling active  (health %.1f >= 75)",
-                                g_py_health);
-
    string tiRow;
    if(!TI_Enabled)
       tiRow = "║ AI Filter: DISABLED";
    else
       tiRow = StringFormat(
-         "║ AI Filter: %s | Blocks: %d | Allows: %d",
+         "║ AI (report-only): %s | WouldBlock: %d | WouldAllow: %d",
          g_ti_status, g_ti_blocks, g_ti_allows);
 
    // v5.19: per-stage pipeline status strings (never-fired shows "never")
@@ -1900,45 +1601,31 @@ void UpdateChartDisplay()
    #define MID  "╠══════════════════════════╩══════════════════════════╣\n"
    #define ENDF "\n"
 
-   string py_live   = g_py_stale ? "⚠️ STALE" : "✅ LIVE";
-   string py_lot    = DoubleToString(CalcLotSize(), 2);
-   string py_mult   = DoubleToString(PY_GetMultiplier(), 4);
-   string py_health = DoubleToString(g_py_health, 1);
-   string py_base   = DoubleToString(CalcBaseLot(), 2);
-   double equity    = AccountInfoDouble(ACCOUNT_EQUITY);
-   string py_steps  = DoubleToString(MathFloor(equity / EquityStep), 0);
-   string py_equity = DoubleToString(equity, 2);
+   string fixedLotStr = DoubleToString(CalcLotSize(), 2);
+   double equity      = AccountInfoDouble(ACCOUNT_EQUITY);
+   string equityStr    = DoubleToString(equity, 2);
 
    string d = "";
 
    d += TOP;
-   d += "║   UNICORE v5.22 XAUUSD     " + COL + "  MSV=PRIMARY  Manual Exit  ║\n";
+   d += "║   UNICORE v5.24 XAUUSD     " + COL + "  No Gate  Manual Exit  ║\n";
    d += SEP;
 
    d += "║ STATUS: " + g_lastSignalStatus + ENDF;
    if(g_lastError != "")
       d += "║ ERROR:  " + g_lastError + ENDF;
-   d += "║ Last:   [" + g_lastSignalStrategy + "] " + g_lastSignalAction
-      + COL + "Vote: " + g_lastVote + "\n";
-   d += "║ MSV Dir: " + msvDirLabel + "  |  Gate: ⚪ REMOVED\n";
+   d += "║ Last:   [" + g_lastSignalStrategy + "] " + g_lastSignalAction + ENDF;
    d += "║ AI ea_id: per-strategy ✅ | snap+pred ✅ | opened_at ✅ (v5.17)\n";
    d += SEP;
 
    d += "╠══════════════════════╦═════════════════════════╣\n";
-   d += "║  🐍 PYTHON BRIDGE    ║  " + py_live + "  (sole lot authority)  \n";
+   d += "║  🎯 LOT SIZING       ║  FIXED (bridge removed)  \n";
    d += "╠══════════════════════╬═════════════════════════╣\n";
-   d += "║ Mode:    " + g_py_mode   + COL + " Mult:   " + py_mult + "x          \n";
-   d += "║ Regime:  " + g_py_regime + "                                \n";
-   d += "║ Health:  " + py_health   + "/100" + COL + " Equity: $" + py_equity + "  \n";
-   d += "║ Steps:   " + py_steps + " × $" + DoubleToString(EquityStep,0)
-      + " → base " + py_base + " lots              \n";
-   d += "║ Final Lot: " + py_lot    + "  (" + py_base + " × " + py_mult + "x)         \n";
-   d += lotGateRow + ENDF;
-   d += "║ " + g_py_status + "                                         \n";
+   d += "║ Fixed Lot: " + fixedLotStr + COL + " Equity: $" + equityStr + "  \n";
    d += SEP;
 
    d += "╠══════════════════════════════════════════════════╣\n";
-   d += "║  🤖 TRADING INTELLIGENCE AI (v5.19)               \n";
+   d += "║  🤖 TRADING INTELLIGENCE AI (v5.24 — report-only) \n";
    d += tiRow + ENDF;
    d += "║ Predict: " + g_ti_predictStatus + COL + predictTimeStr + "\n";
    d += "║ Patch:   " + g_ti_patchStatus   + COL + patchTimeStr   + "\n";
@@ -1953,7 +1640,7 @@ void UpdateChartDisplay()
    d += SEP;
 
    d += "║  STRATEGY       Open" + COL + "  STRATEGY       Open  ║\n";
-   d += "║  K1 MSV ★       " + IntegerToString(msvOpen)
+   d += "║  K1 MSV         " + IntegerToString(msvOpen)
       + COL + "  A1 UTBOT        " + IntegerToString(utbotOpen) + "      ║\n";
    d += "║  B2 TRAP(INV)   " + IntegerToString(trapOpen)
       + COL + "  C3 OB           " + IntegerToString(obOpen)    + "      ║\n";

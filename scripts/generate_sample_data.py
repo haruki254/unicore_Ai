@@ -217,9 +217,17 @@ def _row_to_trade(row: dict, pipeline: FeaturePipeline) -> dict | None:
         features["price"] = exit_p
         features["structure_score"] = 0.5 if exit_p > entry else -0.5
 
-    win_prob = 0.65 if outcome == "WIN" else 0.35
-    win_prob = float(np.clip(win_prob + np.random.uniform(-0.05, 0.05), 0.25, 0.85))
-
+    # NOTE: similar_win_rate / similar_avg_pnl / similar_count are NOT
+    # computed here. They used to be derived directly from this row's own
+    # `outcome` (win_prob = 0.65 if WIN else 0.35) and `pnl_pips`, which
+    # leaked the label straight into a training feature — the Risk Manager
+    # model could just read the outcome back off similar_win_rate instead
+    # of learning anything real, which is why walk-forward AUC hit a
+    # suspicious 1.0000. generate() now fills these in per-row using a
+    # genuine memory.query() against only the trades processed so far
+    # (chronologically prior, never the row's own future-known outcome),
+    # matching how the live /predict path sources these fields from
+    # TradeMemoryEngine. See generate() below.
     conditions = {k: features.get(k, 0.0) for k in ALL_FEATURE_NAMES}
 
     snap = row.get("_snapshot")
@@ -249,9 +257,14 @@ def _row_to_trade(row: dict, pipeline: FeaturePipeline) -> dict | None:
             "trades_today":         int(row.get("trades_today") or np.random.randint(0, 8)),
             "session_quality":      float(features.get("session_quality", 0.5)),
             "spread_pips":          spread,
-            "similar_win_rate":     win_prob,
-            "similar_avg_pnl":      pnl * 0.9,
-            "similar_count":        np.random.randint(5, 30),
+            # Placeholders — overwritten in generate() by a real
+            # memory.query() call against prior trades only. Left as
+            # neutral (not outcome-derived) in case that overwrite is
+            # ever skipped for some reason, so this never silently
+            # reintroduces the leak.
+            "similar_win_rate":     0.5,
+            "similar_avg_pnl":      0.0,
+            "similar_count":        0,
         },
         "prediction": {
             "trader_buy_prob":   0.65 if direction == "BUY" else 0.35,
@@ -272,12 +285,34 @@ def generate():
 
     trades: list[dict] = []
     skipped = 0
+    cold_start_count = 0
     print(f"Converting {len(raw_rows)} DB rows → training records...")
     for idx, row in enumerate(raw_rows):
         record = _row_to_trade(row, pipeline)
         if record is None:
             skipped += 1
             continue
+
+        # ── Genuine historical similarity, computed BEFORE this trade is
+        # added to memory. This must happen prior to memory.add() below —
+        # otherwise the trade would find itself as a neighbor of itself
+        # (distance 0), which leaks the label just as badly as the old
+        # outcome-derived win_prob did. Rows are processed in chronological
+        # order (fetch_trades() orders by closed_at ASC), so "prior" here
+        # correctly means "closed before this trade" — the same temporal
+        # honesty the live /predict path has, since a trade that hasn't
+        # closed yet obviously isn't in memory either.
+        similar = memory.query(record["conditions"])
+        if similar is not None:
+            record["risk_context"]["similar_win_rate"] = similar.win_rate
+            record["risk_context"]["similar_avg_pnl"]  = similar.avg_pnl
+            record["risk_context"]["similar_count"]    = similar.count
+        else:
+            # Cold start — fewer than MIN_SETUPS prior trades in memory yet.
+            # Neutral, outcome-independent defaults (already set in
+            # _row_to_trade), left unchanged here on purpose.
+            cold_start_count += 1
+
         trades.append(record)
 
         pnl    = float(row.get("pnl_pips") or 0)
@@ -296,6 +331,11 @@ def generate():
             print(f"  {idx+1}/{len(raw_rows)} converted...")
 
     real_count = len(trades)
+
+    if cold_start_count:
+        print(f"\nℹ️  {cold_start_count}/{real_count} trades used neutral similar_* defaults "
+              f"(fewer than the minimum prior trades were in memory yet at that point "
+              f"in chronological order — this is expected for the earliest trades).")
 
     if skipped:
         print(f"\n⚠️  Skipped {skipped}/{len(raw_rows)} rows (missing outcome or closed_at). "

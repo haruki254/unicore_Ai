@@ -3,17 +3,19 @@
 run.py  —  Trading Intelligence System master launcher
 Place this file inside your trading_intelligence folder, then run:
 
-  First time / full reset:
-      python run.py --fresh
-
-  Daily startup (just start the server):
       python run.py
 
-  Retrain models then start server:
-      python run.py --retrain
+Every run always does all three steps in order:
+  1. Generate training data   (scripts/generate_sample_data.py)
+  2. Train Trader AI + Risk Manager AI   (scripts/train_models.py --force)
+  3. Start the API server   (scripts/start_api.py)
 
   Train only, don't start server:
       python run.py --train-only
+
+--fresh and --retrain are accepted but no longer change anything — data
+generation and training now always run regardless of these flags, so they're
+kept only so old commands/scripts that still pass them don't error out.
 """
 
 import sys
@@ -86,13 +88,29 @@ def check_env():
 
 
 def data_ready():
-    """Returns True if synthetic training data already exists."""
+    """
+    Returns True if synthetic training data already exists.
+    NOTE: no longer called from main() — do_data is now unconditionally
+    True on every run. Left in place in case you want conditional
+    skipping back later.
+    """
     d = ROOT / "data"
     return d.exists() and any(d.glob("*.pkl"))
 
 
 def models_ready():
-    """Returns True if trained model files already exist."""
+    """
+    Returns True if trained model files already exist.
+    NOTE: no longer called from main() — do_train is now unconditionally
+    True on every run. Left in place in case you want conditional
+    skipping back later.
+
+    Also, pre-existing bug worth knowing about if you ever revive this:
+    it globs for "*.pkl", but train_models.py actually saves
+    trader_ai.joblib / risk_manager.joblib (.joblib, not .pkl) — so this
+    would always return False even with fully trained models sitting in
+    models_saved/. Not fixed here since the function isn't in use.
+    """
     m = ROOT / "models_saved"
     return m.exists() and any(m.glob("*.pkl"))
 
@@ -106,12 +124,12 @@ def main():
     parser.add_argument(
         "--fresh",
         action="store_true",
-        help="Regenerate training data + retrain models + start server",
+        help="(no-op — data generation and training now always run every time)",
     )
     parser.add_argument(
         "--retrain",
         action="store_true",
-        help="Retrain models (skip data generation) then start server",
+        help="(no-op — data generation and training now always run every time)",
     )
     parser.add_argument(
         "--train-only",
@@ -123,8 +141,12 @@ def main():
     banner()
 
     # ── Decide what to do ─────────────────────────────────────────────────────
-    do_data   = args.fresh or (not data_ready() and not args.retrain)
-    do_train  = args.fresh or args.retrain or not models_ready()
+    # Always generate data and train, every single run — no skipping based on
+    # whether data/models already exist. --fresh and --retrain are accepted
+    # (see argparse above) but don't affect this anymore since it's now
+    # unconditional either way.
+    do_data   = True
+    do_train  = True
     do_server = not args.train_only
 
     # Count total steps
@@ -137,30 +159,24 @@ def main():
     cur += 1
 
     # ── Step 2: Generate training data ────────────────────────────────────────
-    if do_data:
-        section(cur, total, "Generating synthetic training data")
-        info("Creating 2,000 example trades for the AI to learn from ...")
-        if run("scripts/generate_sample_data.py"):
-            ok("Training data generated  →  data/sample_trades.pkl")
-        else:
-            err("Data generation failed. Check the output above for details.")
-            sys.exit(1)
-        cur += 1
+    section(cur, total, "Generating training data")
+    info("Pulling real closed trades from trade_history for the AI to learn from ...")
+    if run("scripts/generate_sample_data.py"):
+        ok("Training data generated  →  data/sample_trades.pkl")
     else:
-        info("(Training data already exists — skipping generation)")
+        err("Data generation failed. Check the output above for details.")
+        sys.exit(1)
+    cur += 1
 
     # ── Step 3: Train models ──────────────────────────────────────────────────
-    if do_train:
-        section(cur, total, "Training Trader AI + Risk Manager AI")
-        info("This usually takes 2–5 minutes ...")
-        if run("scripts/train_models.py", "--force"):
-            ok("Models trained and saved  →  models_saved/")
-        else:
-            err("Training failed. Check the output above for details.")
-            sys.exit(1)
-        cur += 1
+    section(cur, total, "Training Trader AI + Risk Manager AI")
+    info("This usually takes under a minute for small datasets ...")
+    if run("scripts/train_models.py", "--force"):
+        ok("Models trained and saved  →  models_saved/")
     else:
-        info("(Trained models already exist — skipping training)")
+        err("Training failed. Check the output above for details.")
+        sys.exit(1)
+    cur += 1
 
     # ── Step 4: Start API server ──────────────────────────────────────────────
     if do_server:
