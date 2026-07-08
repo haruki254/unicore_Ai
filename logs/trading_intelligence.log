@@ -13483,3 +13483,51 @@
 2026-07-08 12:13:43.624 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
 2026-07-08 12:13:43.625 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 47ms
 2026-07-08 12:13:43.635 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 47ms
+2026-07-08 12:13:46.836 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:13:47.137 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:13:47.138 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:13:47.151 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:13:47.174 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:13:47.176 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:13:47.200 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 62ms
+2026-07-08 12:13:47.202 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 62ms
+2026-07-08 12:13:47.866 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:13:48.265 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:13:48.274 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:13:48.285 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:13:48.358 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:13:48.388 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:13:48.423 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 158ms
+2026-07-08 12:13:48.465 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 158ms
+2026-07-08 12:13:51.846 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:13:52.179 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:13:52.181 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:13:52.197 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:13:52.218 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:13:52.228 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:13:52.229 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 50ms
+2026-07-08 12:13:52.230 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 50ms
+2026-07-08 12:13:52.891 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:13:53.200 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:13:53.203 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:13:53.213 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:13:53.231 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:13:53.232 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:13:53.233 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 32ms
+2026-07-08 12:13:53.233 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 32ms
+2026-07-08 12:13:56.848 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:13:57.991 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:13:57.994 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:13:58.003 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:13:58.027 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:13:58.028 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:13:58.029 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 38ms
+2026-07-08 12:13:58.030 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 38ms
+2026-07-08 12:14:01.843 | DEBUG    | monitoring.logger:debug:65 - Features computed | {} features for {symbol} {'symbol': 'XAUUSD'}
+2026-07-08 12:14:02.191 | DEBUG    | monitoring.logger:debug:65 - REGIME | XAUUSD → sideways_range (21%)
+2026-07-08 12:14:02.210 | DEBUG    | monitoring.logger:debug:65 - MEMORY | 11 similar | WR=100% | avgPnL=+48.3 pips
+2026-07-08 12:14:02.312 | INFO     | monitoring.logger:info:70 - TraderAI | BUY=61% SELL=39% → BUY (conf=11%)
+2026-07-08 12:14:02.398 | INFO     | monitoring.logger:info:70 - RiskManager | ALLOW | quality=67%
+2026-07-08 12:14:02.434 | INFO     | monitoring.logger:info:70 - [default] BUY=50%(7.5/15.0) SELL=50%(7.5/15.0) | signal=BUY | regime=sideways_range[BUY:MED/SELL:MED], session=london[BUY:MED/SELL:MED], volatility=LOW[BUY:MED/SELL:MED], momentum=NEUTRAL[BUY:MED/SELL:MED], level_prox=AT[BUY:MED/SELL:MED]
+2026-07-08 12:14:02.477 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 286ms
+2026-07-08 12:14:02.527 | INFO     | monitoring.logger:info:70 - PREDICT | XAUUSD | EA:BUY | Buy:61% Sell:39% | Risk:67% | → ALLOW_BUY | 286ms
