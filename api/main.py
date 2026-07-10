@@ -305,14 +305,32 @@ async def update_trade(
                 profile_data = db.get_ea_profile(req.ea_id)
                 flip_stats   = db.get_flip_stats(req.ea_id) or {}
                 snapshot_features = {}
+                snapshot_ok       = False
 
-                if req.snapshot_id:
+                if not req.snapshot_id:
+                    api_logger.warning(
+                        "No snapshot_id on trade {} ({}) — adaptive update and memory "
+                        "will run with empty features; nothing will actually be learned "
+                        "from this trade.",
+                        req.mt5_ticket, req.ea_id,
+                    )
+                else:
                     snap = db.get_snapshot_features(req.snapshot_id)
-                    if snap:
+                    if not snap:
+                        api_logger.warning(
+                            "Snapshot {} not found for trade {} ({}) — DB may have dropped "
+                            "the insert (check for earlier 'insert market_snapshots failed' "
+                            "or connection errors). Adaptive update and memory will run "
+                            "with empty features; nothing will actually be learned from "
+                            "this trade.",
+                            req.snapshot_id, req.mt5_ticket, req.ea_id,
+                        )
+                    else:
                         snapshot_features = snap
                         snapshot_features["direction"] = req.outcome
                         snapshot_features["regime"]    = snap.get("regime") or req.regime
                         snapshot_features["session"]   = snap.get("session") or req.session
+                        snapshot_ok = True
 
                 if profile_data:
                     ea_profile    = EAProfile.from_dict(profile_data)
@@ -326,15 +344,37 @@ async def update_trade(
                     )
                     db.save_ea_profile(req.ea_id, update_result.updated_profile.to_dict())
                     db.update_flip_stats(req.ea_id, update_result.updated_flip_stats)
-                    api_logger.info("Adaptive update: {}", update_result.summary())
+
+                    if update_result.n_changes == 0 and not snapshot_ok:
+                        api_logger.warning(
+                            "Adaptive update NO-OP: {} — 0 weights changed because "
+                            "snapshot_features was empty (see warning above), not because "
+                            "the trade held no useful signal.",
+                            update_result.summary(),
+                        )
+                    elif update_result.n_changes == 0:
+                        api_logger.info(
+                            "Adaptive update: {} — snapshot was present but no dimension "
+                            "crossed the change threshold this round.",
+                            update_result.summary(),
+                        )
+                    else:
+                        api_logger.info("Adaptive update: {}", update_result.summary())
             except Exception as e:
                 api_logger.error("Adaptive update failed for {}: {}", req.ea_id, e)
             # ── End adaptive update ───────────────────────────
 
             # Add to memory engine
+            if not snapshot_ok:
+                api_logger.warning(
+                    "Memory record for trade {} will be a zero-vector (empty features) "
+                    "— see snapshot warning above. This record will still count toward "
+                    "memory_engine.size() but contributes no real similarity signal.",
+                    req.mt5_ticket,
+                )
             memory_engine.add(
                 record_id    = str(req.mt5_ticket),
-                features     = {},   # would be filled from saved snapshot
+                features     = snapshot_features,  # real features when available, else {}
                 outcome      = req.outcome,
                 pnl_pips     = req.pnl_pips,
                 max_drawdown = req.max_drawdown_pips,
