@@ -107,6 +107,7 @@ class PredictionResponse(BaseModel):
     inference_ms:  int
     snapshot_id:   Optional[str] = None
     prediction_id: Optional[str] = None
+    decision_time: Optional[str] = None   # server-side UTC ISO-8601, set when the decision was produced
 
     class Config:
         json_schema_extra = {

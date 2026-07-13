@@ -105,8 +105,8 @@ class DatabaseClient:
         })
         return sid
 
-    def save_prediction(self, snapshot_id: str, r: dict) -> Optional[str]:
-        pid = str(uuid.uuid4())
+    def save_prediction(self, snapshot_id: str, r: dict, prediction_id: Optional[str] = None) -> Optional[str]:
+        pid = prediction_id or str(uuid.uuid4())
         self._ins("predictions", {
             "id":                    pid,
             "snapshot_id":           snapshot_id,

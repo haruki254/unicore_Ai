@@ -188,17 +188,20 @@ async def predict(
         api_logger.error("Decision pipeline error: {}", e)
         raise HTTPException(status_code=500, detail=f"Decision error: {e}")
 
-    # ── Persist snapshot + prediction in background ───────────
-    snapshot_id  = str(uuid.uuid4())
-    prediction_id = None
+    # ── Generate IDs synchronously, BEFORE the response is built ──────
+    # background_tasks run AFTER the response has already been sent to the
+    # client (Starlette/FastAPI semantics) — so anything the EA needs back
+    # in this response, like prediction_id, must be created here rather
+    # than inside _persist(). This mirrors how snapshot_id already worked.
+    snapshot_id   = str(uuid.uuid4())
+    prediction_id = str(uuid.uuid4())
+    decision_time = datetime.utcnow().isoformat()
 
+    # ── Persist snapshot + prediction in background ───────────
     async def _persist():
-        nonlocal prediction_id
         try:
             sid = db.save_snapshot({**snapshot, "id": snapshot_id, "features": features})
-            pid = db.save_prediction(sid or snapshot_id, result.to_dict())
-            if pid:
-                prediction_id = pid
+            db.save_prediction(sid or snapshot_id, result.to_dict(), prediction_id=prediction_id)
         except Exception as e:
             api_logger.error("Persist error: {}", e)
 
@@ -238,6 +241,7 @@ async def predict(
         inference_ms      = result.inference_ms,
         snapshot_id       = snapshot_id,
         prediction_id     = prediction_id,
+        decision_time     = decision_time,
     )
 
 
