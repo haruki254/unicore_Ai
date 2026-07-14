@@ -1,8 +1,11 @@
 """
 Centralized logging — uses loguru when installed, else stdlib logging.
+Updated: decision logs only fire on NEW decisions (throttled).
 """
+
 import logging
 import sys
+import time
 from pathlib import Path
 
 try:
@@ -12,10 +15,6 @@ except ImportError:
     _USE_LOGURU = False
 
 if _USE_LOGURU:
-    # Without this, loguru only prints to stderr — nothing ever reaches
-    # logs/trading_intelligence.log, so db_logger.error(...) calls (e.g.
-    # a failed trade_history insert) were invisible unless you had the
-    # console output open at the exact moment they fired.
     Path("./logs").mkdir(exist_ok=True)
     _loguru.add(
         "./logs/trading_intelligence.log",
@@ -25,7 +24,6 @@ if _USE_LOGURU:
         enqueue=True,
     )
 
-# ── Bootstrap stdlib fallback ─────────────────────────────────
 def _setup_stdlib():
     Path("./logs").mkdir(exist_ok=True)
     fmt = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
@@ -43,7 +41,7 @@ if not _USE_LOGURU:
 
 
 class _Logger:
-    """Thin wrapper so the rest of the codebase uses one API."""
+    """Thin wrapper with decision throttling."""
 
     def __init__(self, name: str):
         self._name = name
@@ -51,6 +49,7 @@ class _Logger:
             self._l = _loguru.bind(component=name)
         else:
             self._l = logging.getLogger(name)
+        self._last_decision_ts = 0.0  # For throttling decision logs
 
     def _msg(self, msg: str, **kw) -> str:
         if kw:
@@ -62,32 +61,48 @@ class _Logger:
 
     def debug(self, msg: str, *args, **kw):
         m = self._msg(msg, **kw) if kw else (msg.format(*args) if args else msg)
-        if _USE_LOGURU: self._l.debug(m)
-        else:           self._l.debug(m)
+        if _USE_LOGURU:
+            self._l.debug(m)
+        else:
+            self._l.debug(m)
 
     def info(self, msg: str, *args, **kw):
         m = self._msg(msg, **kw) if kw else (msg.format(*args) if args else msg)
-        if _USE_LOGURU: self._l.info(m)
-        else:           self._l.info(m)
+        if _USE_LOGURU:
+            self._l.info(m)
+        else:
+            self._l.info(m)
 
     def warning(self, msg: str, *args, **kw):
         m = self._msg(msg, **kw) if kw else (msg.format(*args) if args else msg)
-        if _USE_LOGURU: self._l.warning(m)
-        else:           self._l.warning(m)
+        if _USE_LOGURU:
+            self._l.warning(m)
+        else:
+            self._l.warning(m)
 
     def error(self, msg: str, *args, **kw):
         m = self._msg(msg, **kw) if kw else (msg.format(*args) if args else msg)
-        if _USE_LOGURU: self._l.error(m)
-        else:           self._l.error(m)
+        if _USE_LOGURU:
+            self._l.error(m)
+        else:
+            self._l.error(m)
 
     def critical(self, msg: str, *args, **kw):
         m = self._msg(msg, **kw) if kw else (msg.format(*args) if args else msg)
-        if _USE_LOGURU: self._l.critical(m)
-        else:           self._l.critical(m)
+        if _USE_LOGURU:
+            self._l.critical(m)
+        else:
+            self._l.critical(m)
 
-    # ── Domain helpers ─────────────────────────────────────────
+    # ── Domain-specific (throttled) ─────────────────────────────────
     def log_prediction(self, symbol, ea_signal, trader_buy, trader_sell,
                        risk_quality, final_decision, inference_ms):
+        """Log only on new decisions — throttled to avoid spam."""
+        now = time.time()
+        if now - self._last_decision_ts < 2.0:  # 2-second throttle
+            return
+        self._last_decision_ts = now
+
         self.info(
             f"PREDICT | {symbol} | EA:{ea_signal} | "
             f"Buy:{trader_buy:.0%} Sell:{trader_sell:.0%} | "
@@ -111,6 +126,7 @@ class _Logger:
         self.warning(f"BLOCKED | {symbol} | {reasons}")
 
 
+# Global instances
 api_logger      = _Logger("api")
 model_logger    = _Logger("models")
 feature_logger  = _Logger("features")
