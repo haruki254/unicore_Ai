@@ -11,7 +11,7 @@
 CTrade trade;
 
 // ==================== SETTINGS =====================
-string   AI_API_URL     = "http://127.0.0.1:8000/predict";   // Change if needed
+string   AI_API_URL     = "http://127.0.0.1:8000";            // base URL now — this EA only polls /decision/latest, it never calls /predict
 string   AI_API_KEY     = "@Youtube2017";
 double   LotSize        = 0.01;                               // Fixed lot
 int      MagicNumber    = 88888;
